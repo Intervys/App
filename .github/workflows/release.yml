@@ -21,7 +21,7 @@ jobs:
         with:
           workdir: setup/src-tauri
 
-      - name: Build intervio-setup.exe
+      - name: Build intervys-setup.exe
         working-directory: setup/src-tauri
         run: cargo build --release
 
@@ -29,7 +29,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe
-          path: setup/src-tauri/target/release/intervio-setup.exe
+          path: setup/src-tauri/target/release/intervys-setup.exe
 
   # ── Publier la release avec les deux assets ──────────────────
   release:
@@ -47,7 +47,7 @@ jobs:
           name: windows-exe
           path: dist/
 
-      - name: Créer intervio-deploy.zip (Docker)
+      - name: Créer intervys-deploy.zip (Docker)
         run: |
           mkdir -p pkg
           cp -r app         pkg/app
@@ -58,24 +58,24 @@ jobs:
           cp -r pocketbase/hooks/.      pkg/hooks/
           cp    mailer/server.js        pkg/mailer/
           cp    mailer/package.json     pkg/mailer/
-          cd pkg && zip -r ../intervio-deploy.zip . && cd ..
-          echo "Docker ZIP : $(du -sh intervio-deploy.zip | cut -f1)"
-          echo "Windows EXE : $(du -sh dist/intervio-setup.exe | cut -f1)"
+          cd pkg && zip -r ../intervys-deploy.zip . && cd ..
+          echo "Docker ZIP : $(du -sh intervys-deploy.zip | cut -f1)"
+          echo "Windows EXE : $(du -sh dist/intervys-setup.exe | cut -f1)"
 
       - name: Publier la release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
-            dist/intervio-setup.exe
-            intervio-deploy.zip
+            dist/intervys-setup.exe
+            intervys-deploy.zip
             docker-compose.install.yml
             .env.example
           body: |
             ## Installation
 
             ### Windows
-            Télécharger **`intervio-setup.exe`** et l'exécuter.
+            Télécharger **`intervys-setup.exe`** et l'exécuter.
 
             ### Docker (Linux / VPS)
             ```bash
