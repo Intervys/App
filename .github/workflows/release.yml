@@ -19,7 +19,7 @@ jobs:
       - name: Cache Cargo
         uses: swatinem/rust-cache@v2
         with:
-          workdir: setup/src-tauri
+          workspaces: "setup/src-tauri -> target"
 
       - name: Build intervys-setup.exe
         working-directory: setup/src-tauri
