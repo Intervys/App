@@ -392,7 +392,7 @@ routerAdd("POST", "/api/verify-otp", function(e) {
     try { $app.saveNoValidate(auth); } catch(se) { return e.json(500, { error: "Erreur sauvegarde : " + se }); }
 
     return e.json(200, { ok: true });
-}, $apis.requireRecordAuth("users"));
+});
 
 routerAdd("POST", "/api/resend-otp", function(e) {
     var info = e.requestInfo();
@@ -411,12 +411,18 @@ routerAdd("POST", "/api/resend-otp", function(e) {
     try { $app.saveNoValidate(auth); } catch(se) { return e.json(500, { error: "Erreur : " + se }); }
 
     var from = { address: "noreply@example.com", name: "Intervys" };
-    try { var s = $app.settings(); from = { address: s.meta.senderAddress || "noreply@example.com", name: s.meta.senderName || "Intervys" }; } catch(x) {}
+    try { var s = $app.settings(); var a = s.meta && s.meta.senderAddress ? s.meta.senderAddress : ""; from = { address: a||"noreply@example.com", name: s.meta && s.meta.senderName ? s.meta.senderName : "Intervys" }; } catch(x) {}
+
+    var brandName = from.name;
     var brandColor = "#4f46e5";
     try {
-        var th = $app.findFirstRecordByFilter("settings", "key='theme'");
-        if (th) { var tv = JSON.parse(th.getString("value")); brandColor = tv["--blue"] || tv["--accent"] || brandColor; }
-    } catch(x) {}
+        var trows = $app.findRecordsByFilter("settings", "key='theme' || key='site_name'", "", 10, 0);
+        for (var ti = 0; ti < trows.length; ti++) {
+            var tk = trows[ti].getString("key"); var tv = trows[ti].getString("value");
+            if (tk === "site_name" && tv) brandName = tv;
+            if (tk === "theme" && tv) { try { var th = JSON.parse(tv); brandColor = th["--blue"] || th["--accent"] || th["--primary"] || brandColor; } catch(pe) {} }
+        }
+    } catch(se) {}
 
     try {
         var msg = new MailerMessage({
@@ -424,18 +430,20 @@ routerAdd("POST", "/api/resend-otp", function(e) {
             subject: "Votre nouveau code : " + otp,
             html: "<div style='font-family:Arial,sans-serif;background:#0d1117;padding:40px 20px'>"
                 + "<div style='background:#111820;border-radius:12px;padding:32px;max-width:480px;margin:0 auto;border:1px solid rgba(79,70,229,.3)'>"
+                + "<div style='text-align:center;margin-bottom:24px;font-size:1.8rem;font-weight:800;color:" + brandColor + "'>" + brandName + "</div>"
                 + "<h2 style='color:#e2e8f0;font-size:1.1rem;margin:0 0 12px'>Bonjour " + name + ",</h2>"
                 + "<p style='color:#8fa8c0;margin:0 0 24px'>Votre nouveau code de vérification :</p>"
                 + "<div style='background:#0a1628;border:2px solid " + brandColor + ";border-radius:12px;padding:24px;text-align:center;margin-bottom:24px'>"
                 + "<div style='font-size:2.8rem;font-weight:800;letter-spacing:.3em;color:" + brandColor + ";font-family:monospace'>" + otp + "</div>"
                 + "<div style='font-size:.75rem;color:#5f7a96;margin-top:8px'>Valable 15 minutes</div></div>"
+                + "<p style='color:#5f7a96;font-size:.82rem;text-align:center'>Si vous n'avez pas demandé ce code, ignorez cet email.</p>"
                 + "</div></div>",
         });
         $app.newMailClient().send(msg);
     } catch(me) { return e.json(500, { error: "Erreur envoi email : " + me }); }
 
     return e.json(200, { ok: true });
-}, $apis.requireRecordAuth("users"));
+});
 
 // ════════════════════════════════════════
 // ENVOI EMAIL DEVIS/FACTURE avec PDF en pièce jointe

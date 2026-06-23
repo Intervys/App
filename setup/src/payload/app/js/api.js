@@ -77,6 +77,7 @@ class API {
   async verifyOtp(code) {
     return this.req('POST', '/api/verify-otp', { code });
   }
+
   async resendOtp() {
     return this.req('POST', '/api/resend-otp', {});
   }

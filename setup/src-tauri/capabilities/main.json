@@ -3,7 +3,6 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "core:event:default",
     "dialog:allow-open"
   ]
 }
