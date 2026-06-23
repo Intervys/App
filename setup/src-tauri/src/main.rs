@@ -1,4 +1,4 @@
-#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
+﻿#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 use std::fs;
 use std::io;
@@ -35,9 +35,9 @@ fn check_mode() -> String {
 #[tauri::command]
 fn get_default_dir() -> String {
     std::env::var("LOCALAPPDATA")
-        .map(|h| format!("{}\\Intervio", h))
-        .or_else(|_| std::env::var("USERPROFILE").map(|h| format!("{}\\Intervio", h)))
-        .unwrap_or_else(|_| "C:\\Users\\Public\\Intervio".to_string())
+        .map(|h| format!("{}\\Intervys", h))
+        .or_else(|_| std::env::var("USERPROFILE").map(|h| format!("{}\\Intervys", h)))
+        .unwrap_or_else(|_| "C:\\Users\\Public\\Intervys".to_string())
 }
 
 #[tauri::command]
@@ -133,8 +133,8 @@ fn payload_base() -> &'static std::path::PathBuf {
             let c = p.join("src").join("payload");
             if c.exists() { return c; }
         }
-        // Production : extrait le zip embarqué dans %TEMP%\IntervioSetup
-        let dest = std::env::temp_dir().join("IntervioSetup");
+        // Production : extrait le zip embarqué dans %TEMP%\IntervysSetup
+        let dest = std::env::temp_dir().join("IntervysSetup");
         let marker = dest.join(".payload_ok");
         if !marker.exists() {
             let _ = std::fs::remove_dir_all(&dest);
@@ -215,7 +215,7 @@ fn create_lnk_shortcut(desktop: &str, name: &str, target: &str, icon_path: &str)
         bytes.push(cu as u8);
         bytes.push((cu >> 8) as u8);
     }
-    let tmp = std::env::temp_dir().join("intervio_lnk.vbs");
+    let tmp = std::env::temp_dir().join("intervys_lnk.vbs");
     fs::write(&tmp, &bytes).ok();
     Command::new("wscript.exe")
         .args([tmp.to_string_lossy().as_ref()])
@@ -231,12 +231,12 @@ fn create_desktop_shortcuts(base: &Path, icon_path: &str) {
         .unwrap_or_default();
     if desktop.is_empty() { return; }
     // Raccourci Site (navigateur → vitrine publique)
-    create_url_shortcut(&desktop, "Intervio Site", "http://localhost:8090/", icon_path);
+    create_url_shortcut(&desktop, "Intervys Site", "http://localhost:8090/", icon_path);
     // Raccourci Admin (navigateur → back-office)
-    create_url_shortcut(&desktop, "Intervio Admin", "http://localhost:8090/app/#/admin-login", icon_path);
-    // Raccourci Contrôleur (lance intervio.exe)
-    let ctrl = base.join("intervio.exe").to_string_lossy().to_string();
-    create_lnk_shortcut(&desktop, "Intervio Controleur", &ctrl, icon_path);
+    create_url_shortcut(&desktop, "Intervys Admin", "http://localhost:8090/app/#/admin-login", icon_path);
+    // Raccourci Contrôleur (lance intervys.exe)
+    let ctrl = base.join("intervys.exe").to_string_lossy().to_string();
+    create_lnk_shortcut(&desktop, "Intervys Controleur", &ctrl, icon_path);
 }
 
 // ── DÉPLOIEMENT NATIF ─────────────────────────────────────────────
@@ -337,11 +337,11 @@ async fn deploy_native(install_dir: String, app: tauri::AppHandle) -> Result<Str
     let mailer_exe   = base.join("mailer").join("mailer.exe");
     let mailer_launch = if mailer_exe.exists() {
         // Exécutable autonome (compilé avec pkg)
-        format!("start \"Intervio Mailer\" /B \"{mailer}\\mailer.exe\"\r\ntimeout /t 1 /nobreak > nul\r\n",
+        format!("start \"Intervys Mailer\" /B \"{mailer}\\mailer.exe\"\r\ntimeout /t 1 /nobreak > nul\r\n",
             mailer = mailer_dir_s)
     } else {
         // Fallback : Node.js si installé
-        format!("where node >nul 2>&1 && (start \"Intervio Mailer\" /B cmd /c \"cd /d \\\"{mailer}\\\" && node server.js\") || echo [mailer] Node.js introuvable - envoi sans piece jointe\r\ntimeout /t 1 /nobreak > nul\r\n",
+        format!("where node >nul 2>&1 && (start \"Intervys Mailer\" /B cmd /c \"cd /d \\\"{mailer}\\\" && node server.js\") || echo [mailer] Node.js introuvable - envoi sans piece jointe\r\ntimeout /t 1 /nobreak > nul\r\n",
             mailer = mailer_dir_s)
     };
 
@@ -354,16 +354,16 @@ async fn deploy_native(install_dir: String, app: tauri::AppHandle) -> Result<Str
         .map_err(|e| format!("Erreur start-pb.vbs : {}", e))?;
 
     let start_bat = format!(
-        "@echo off\r\ntitle Intervio\r\n{mailer}wscript.exe \"%~dp0start-pb.vbs\"\r\ntimeout /t 2 /nobreak > nul\r\nstart http://localhost:8090\r\n",
+        "@echo off\r\ntitle Intervys\r\n{mailer}wscript.exe \"%~dp0start-pb.vbs\"\r\ntimeout /t 2 /nobreak > nul\r\nstart http://localhost:8090\r\n",
         mailer = mailer_launch
     );
     fs::write(base.join("start.bat"), &start_bat)
         .map_err(|e| format!("Erreur start.bat : {}", e))?;
-    fs::write(base.join("stop.bat"), "@echo off\r\ntaskkill /F /IM pocketbase.exe 2>nul\r\ntaskkill /F /IM mailer.exe 2>nul\r\ntaskkill /F /IM node.exe /FI \"WINDOWTITLE eq Intervio Mailer\" 2>nul\r\necho Intervio arrete.\r\n")
+    fs::write(base.join("stop.bat"), "@echo off\r\ntaskkill /F /IM pocketbase.exe 2>nul\r\ntaskkill /F /IM mailer.exe 2>nul\r\ntaskkill /F /IM node.exe /FI \"WINDOWTITLE eq Intervys Mailer\" 2>nul\r\necho Intervys arrete.\r\n")
         .map_err(|e| format!("Erreur stop.bat : {}", e))?;
 
     let password = generate_password();
-    let admin_email = "admin@intervio.local";
+    let admin_email = "admin@intervys.local";
     let pb_exe_str = pb_exe.to_string_lossy().to_string();
 
     // 1. Créer le superuser via CLI AVANT de démarrer le serveur
@@ -405,7 +405,7 @@ async fn deploy_native(install_dir: String, app: tauri::AppHandle) -> Result<Str
     let task_cmd = format!("wscript.exe \"{}\"", vbs_path);
     let schtask = tokio::task::block_in_place(|| {
         Command::new("schtasks")
-            .args(["/create", "/tn", "Intervio", "/tr", &task_cmd,
+            .args(["/create", "/tn", "Intervys", "/tr", &task_cmd,
                    "/sc", "ONLOGON", "/f", "/rl", "HIGHEST"])
             .creation_flags(CREATE_NO_WINDOW)
             .output()
@@ -424,13 +424,13 @@ async fn deploy_native(install_dir: String, app: tauri::AppHandle) -> Result<Str
 
     create_desktop_shortcuts(base, &icon_path);
 
-    // Installer le contrôleur (intervio.exe)
-    let ctrl_payload = get_payload_path("intervio.exe");
-    let ctrl_dest    = base.join("intervio.exe");
+    // Installer le contrôleur (intervys.exe)
+    let ctrl_payload = get_payload_path("intervys.exe");
+    let ctrl_dest    = base.join("intervys.exe");
     if ctrl_payload.exists() {
         fs::copy(&ctrl_payload, &ctrl_dest)
             .map_err(|e| format!("Erreur copie contrôleur : {}", e))?;
-        emit_log(&window, "✓ Contrôleur Intervio installé");
+        emit_log(&window, "✓ Contrôleur Intervys installé");
 
         // Raccourci bureau vers le contrôleur
         let desktop = std::env::var("USERPROFILE")
@@ -438,7 +438,7 @@ async fn deploy_native(install_dir: String, app: tauri::AppHandle) -> Result<Str
             .unwrap_or_default();
         if !desktop.is_empty() {
             let ctrl_s = ctrl_dest.to_string_lossy().to_string();
-            create_lnk_shortcut(&desktop, "Intervio", &ctrl_s, &icon_path);
+            create_lnk_shortcut(&desktop, "Intervys", &ctrl_s, &icon_path);
         }
 
         // Démarrage automatique au login via registre HKCU Run
@@ -447,7 +447,7 @@ async fn deploy_native(install_dir: String, app: tauri::AppHandle) -> Result<Str
             Command::new("reg")
                 .args(["add",
                        r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run",
-                       "/v", "Intervio",
+                       "/v", "Intervys",
                        "/t", "REG_SZ",
                        "/d", &format!("\"{}\"", ctrl_s),
                        "/f"])
@@ -470,11 +470,11 @@ async fn deploy_native(install_dir: String, app: tauri::AppHandle) -> Result<Str
             .spawn()
             .ok();
     } else {
-        emit_log(&window, "⚠ Contrôleur introuvable dans le payload (intervio.exe)");
+        emit_log(&window, "⚠ Contrôleur introuvable dans le payload (intervys.exe)");
     }
 
     emit_progress(&window, "Terminé", 100);
-    emit_log(&window, "Intervio installé !");
+    emit_log(&window, "Intervys installé !");
     Ok(format!("{{\"email\":\"{}\",\"password\":\"{}\"}}", admin_email, password))
 }
 
@@ -504,7 +504,7 @@ async fn deploy_docker(install_dir: String, app: tauri::AppHandle) -> Result<(),
     emit_progress(&window, "Configuration Docker", 50);
     let base_s = base.to_string_lossy().replace('\\', "/");
     let compose = format!(
-        "name: intervio\nservices:\n  app:\n    image: nginx:alpine\n    container_name: intervio_app\n    ports:\n      - \"8080:80\"\n    volumes:\n      - {b}/app:/usr/share/nginx/html:ro\n    restart: unless-stopped\n\n  pocketbase:\n    image: ghcr.io/muchobien/pocketbase:latest\n    container_name: intervio_pocketbase\n    ports:\n      - \"8090:8090\"\n    volumes:\n      - {b}/pocketbase/pb_data:/pb_data\n      - {b}/pocketbase/pb_migrations:/pb_migrations\n      - {b}/pocketbase/pb_hooks:/pb_hooks\n    restart: unless-stopped\n",
+        "name: intervys\nservices:\n  app:\n    image: nginx:alpine\n    container_name: intervys_app\n    ports:\n      - \"8080:80\"\n    volumes:\n      - {b}/app:/usr/share/nginx/html:ro\n    restart: unless-stopped\n\n  pocketbase:\n    image: ghcr.io/muchobien/pocketbase:latest\n    container_name: intervys_pocketbase\n    ports:\n      - \"8090:8090\"\n    volumes:\n      - {b}/pocketbase/pb_data:/pb_data\n      - {b}/pocketbase/pb_migrations:/pb_migrations\n      - {b}/pocketbase/pb_hooks:/pb_hooks\n    restart: unless-stopped\n",
         b = base_s
     );
     fs::write(base.join("docker-compose.yml"), compose)
@@ -522,7 +522,7 @@ async fn deploy_docker(install_dir: String, app: tauri::AppHandle) -> Result<(),
     let icon_payload = get_payload_path("icon.ico");
     if icon_payload.exists() { fs::copy(&icon_payload, &icon_dest).ok(); }
     create_desktop_shortcuts(base, &icon_dest.to_string_lossy());
-    emit_log(&window, "Intervio demarre via Docker !");
+    emit_log(&window, "Intervys demarre via Docker !");
     emit_progress(&window, "Terminé", 100);
     Ok(())
 }
@@ -577,8 +577,8 @@ fn uninstall(app: tauri::AppHandle) -> Result<(), String> {
         }};
     }
 
-    log!(10, "Arrêt du contrôleur Intervio...");
-    Command::new("taskkill").args(["/F", "/IM", "intervio.exe"])
+    log!(10, "Arrêt du contrôleur Intervys...");
+    Command::new("taskkill").args(["/F", "/IM", "intervys.exe"])
         .creation_flags(CREATE_NO_WINDOW).output().ok();
 
     log!(22, "Arrêt de PocketBase...");
@@ -591,21 +591,21 @@ fn uninstall(app: tauri::AppHandle) -> Result<(), String> {
     std::thread::sleep(std::time::Duration::from_millis(600));
 
     log!(42, "Suppression de la tâche planifiée...");
-    Command::new("schtasks").args(["/delete", "/tn", "Intervio", "/f"])
+    Command::new("schtasks").args(["/delete", "/tn", "Intervys", "/f"])
         .creation_flags(CREATE_NO_WINDOW).output().ok();
 
     log!(52, "Suppression du démarrage automatique...");
     Command::new("reg")
         .args(["delete", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run",
-               "/v", "Intervio", "/f"])
+               "/v", "Intervys", "/f"])
         .creation_flags(CREATE_NO_WINDOW).output().ok();
 
     log!(62, "Suppression des raccourcis bureau...");
     if let Ok(profile) = std::env::var("USERPROFILE") {
         for name in &[
-            "Intervio.lnk", "Intervio Controleur.lnk",
-            "Intervio Site.url", "Intervio Admin.url",
-            "Intervio.url", "Intervio Vitrine.url",
+            "Intervys.lnk", "Intervys Controleur.lnk",
+            "Intervys Site.url", "Intervys Admin.url",
+            "Intervys.url", "Intervys Vitrine.url",
         ] {
             fs::remove_file(format!("{}\\Desktop\\{}", profile, name)).ok();
         }
@@ -617,11 +617,11 @@ fn uninstall(app: tauri::AppHandle) -> Result<(), String> {
     }
 
     log!(85, "Suppression du cache temporaire...");
-    fs::remove_dir_all(std::env::temp_dir().join("IntervioSetup")).ok();
+    fs::remove_dir_all(std::env::temp_dir().join("IntervysSetup")).ok();
 
     log!(93, "Nettoyage des anciens fichiers...");
     if let Ok(localappdata) = std::env::var("LOCALAPPDATA") {
-        let nsis = format!("{}\\Programs\\Intervio Setup", localappdata);
+        let nsis = format!("{}\\Programs\\Intervys Setup", localappdata);
         if Path::new(&nsis).exists() { fs::remove_dir_all(&nsis).ok(); }
     }
 

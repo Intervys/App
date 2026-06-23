@@ -1,0 +1,63 @@
+name: intervio
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Avant le premier démarrage :
+#   1. Construire l'image mailer :
+#      docker build -t intervio_mailer:latest ./mailer
+#   2. Adapter les variables ci-dessous (PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD,
+#      MAILER_SECRET) et les chemins de volumes.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  vitrine:
+    image: nginx:alpine
+    container_name: intervio_vitrine
+    ports:
+      - "80:80"
+    volumes:
+      - ./vitrine:/usr/share/nginx/html:ro
+      - ./vitrine/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: always
+    networks:
+      - proxy
+
+  app:
+    image: nginx:alpine
+    container_name: intervio_app
+    volumes:
+      - ./app:/usr/share/nginx/html:ro
+      - ./app/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: always
+    networks:
+      - proxy
+
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: intervio_pocketbase
+    restart: always
+    command: serve --http=0.0.0.0:8090 --dir=/pb_data --publicDir=/pb_public --hooksDir=/pb_hooks --migrationsDir=/pb_migrations
+    environment:
+      - PB_ADMIN_EMAIL=admin@monentreprise.fr
+      - PB_ADMIN_PASSWORD=changeme
+      - MAILER_URL=http://intervio_mailer:3001/send
+    volumes:
+      - ./data:/pb_data
+      - ./migrations:/pb_migrations
+      - ./hooks:/pb_hooks
+    networks:
+      - proxy
+
+  mailer:
+    image: intervio_mailer:latest
+    container_name: intervio_mailer
+    restart: always
+    environment:
+      - MAILER_SECRET=intervio-mailer-secret
+    networks:
+      - proxy
+
+
+networks:
+  proxy:
+    external: true
