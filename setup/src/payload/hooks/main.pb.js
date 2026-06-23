@@ -365,6 +365,79 @@ onRecordCreate(function(e) {
 }, "users");
 
 // ════════════════════════════════════════
+// VÉRIFICATION OTP
+// POST /api/verify-otp  { code: "123456" }  (auth requise)
+// POST /api/resend-otp  {}                   (auth requise)
+// ════════════════════════════════════════
+routerAdd("POST", "/api/verify-otp", function(e) {
+    var info = e.requestInfo();
+    var auth = info.auth;
+    if (!auth) return e.json(401, { error: "Non authentifié" });
+
+    var code = String((info.body && info.body.code) || "").trim();
+    if (!code) return e.json(400, { error: "Code manquant" });
+
+    if (auth.getBool("email_verified")) return e.json(200, { ok: true });
+
+    var stored  = auth.getString("otp_code");
+    var expires = auth.getString("otp_expires");
+    if (!stored) return e.json(400, { error: "Aucun code en attente" });
+
+    if (new Date(expires).getTime() < Date.now()) return e.json(400, { error: "Code expiré — demandez-en un nouveau" });
+    if (code !== stored) return e.json(400, { error: "Code incorrect" });
+
+    auth.set("email_verified", true);
+    auth.set("otp_code", "");
+    auth.set("otp_expires", "");
+    try { $app.saveNoValidate(auth); } catch(se) { return e.json(500, { error: "Erreur sauvegarde : " + se }); }
+
+    return e.json(200, { ok: true });
+}, $apis.requireRecordAuth("users"));
+
+routerAdd("POST", "/api/resend-otp", function(e) {
+    var info = e.requestInfo();
+    var auth = info.auth;
+    if (!auth) return e.json(401, { error: "Non authentifié" });
+
+    if (auth.getBool("email_verified")) return e.json(200, { ok: true });
+
+    var email = auth.getString("email");
+    var name  = auth.getString("name") || "Client";
+
+    var otp = String(Math.floor(100000 + Math.random() * 900000));
+    var expires = new Date(Date.now() + 15 * 60000).toISOString();
+    auth.set("otp_code", otp);
+    auth.set("otp_expires", expires);
+    try { $app.saveNoValidate(auth); } catch(se) { return e.json(500, { error: "Erreur : " + se }); }
+
+    var from = { address: "noreply@example.com", name: "Intervys" };
+    try { var s = $app.settings(); from = { address: s.meta.senderAddress || "noreply@example.com", name: s.meta.senderName || "Intervys" }; } catch(x) {}
+    var brandColor = "#4f46e5";
+    try {
+        var th = $app.findFirstRecordByFilter("settings", "key='theme'");
+        if (th) { var tv = JSON.parse(th.getString("value")); brandColor = tv["--blue"] || tv["--accent"] || brandColor; }
+    } catch(x) {}
+
+    try {
+        var msg = new MailerMessage({
+            from: from, to: [{ address: email }],
+            subject: "Votre nouveau code : " + otp,
+            html: "<div style='font-family:Arial,sans-serif;background:#0d1117;padding:40px 20px'>"
+                + "<div style='background:#111820;border-radius:12px;padding:32px;max-width:480px;margin:0 auto;border:1px solid rgba(79,70,229,.3)'>"
+                + "<h2 style='color:#e2e8f0;font-size:1.1rem;margin:0 0 12px'>Bonjour " + name + ",</h2>"
+                + "<p style='color:#8fa8c0;margin:0 0 24px'>Votre nouveau code de vérification :</p>"
+                + "<div style='background:#0a1628;border:2px solid " + brandColor + ";border-radius:12px;padding:24px;text-align:center;margin-bottom:24px'>"
+                + "<div style='font-size:2.8rem;font-weight:800;letter-spacing:.3em;color:" + brandColor + ";font-family:monospace'>" + otp + "</div>"
+                + "<div style='font-size:.75rem;color:#5f7a96;margin-top:8px'>Valable 15 minutes</div></div>"
+                + "</div></div>",
+        });
+        $app.newMailClient().send(msg);
+    } catch(me) { return e.json(500, { error: "Erreur envoi email : " + me }); }
+
+    return e.json(200, { ok: true });
+}, $apis.requireRecordAuth("users"));
+
+// ════════════════════════════════════════
 // ENVOI EMAIL DEVIS/FACTURE avec PDF en pièce jointe
 // POST /send-doc  { collection, id, pdfB64 }
 // ════════════════════════════════════════
