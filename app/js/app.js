@@ -146,8 +146,11 @@ async function doLogin() {
   if (!email || !pwd) return toast('Remplissez tous les champs', 'warn');
   try {
     await api.loginUser(email, pwd);
+    if (api.user && api.user.email_verified === false) {
+      renderOtpPage();
+      return;
+    }
     toast('Bienvenue !', 'success');
-    // Vérifier si cet utilisateur est un collaborateur avec droits admin
     await _checkStaffAndRoute();
   } catch(e) {
     toast(e.message === 'Failed to authenticate.' ? 'Email ou mot de passe incorrect' : 'Erreur de connexion', 'error');
@@ -195,11 +198,69 @@ async function doRegister() {
       await api.updateUser(user.id, { firstname, address }).catch(() => {});
     }
     await api.loginUser(email, pwd);
+    if (api.user && api.user.email_verified === false) {
+      renderOtpPage();
+      return;
+    }
     toast('Compte créé ! Bienvenue 👋', 'success');
     Router.navigate('/dashboard');
   } catch(e) {
     const msg = e.data?.email?.message || 'Erreur création compte';
     toast(msg, 'error');
+  }
+}
+
+function renderOtpPage() {
+  document.getElementById('app').innerHTML = `
+    <div class="login-page">
+      <div class="login-card">
+        ${(()=>{const s=localStorage.getItem('hg_logo_size')||'150';return `<div class="login-logo"><img src="${window._customLogo || 'img/logo.png'}" style="height:${s}px;width:auto"></div>`;})()}
+        ${localStorage.getItem('hg_show_title') !== 'false' ? `<h2 class="login-title">${window._customSiteName || SITE_NAME}</h2>` : ''}
+        <p class="login-sub">Vérification de votre adresse email</p>
+        <p style="font-size:.85rem;color:var(--muted);text-align:center;margin-bottom:1.25rem">
+          Un code à 6 chiffres a été envoyé à votre adresse email.<br>Saisissez-le ci-dessous pour continuer.
+        </p>
+        <div class="form-group">
+          <label>Code de vérification</label>
+          <input class="form-control" type="text" id="otp-code" placeholder="000000" maxlength="6"
+            style="letter-spacing:.25em;font-size:1.4rem;text-align:center"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+            onkeydown="if(event.key==='Enter')doSubmitOtp()">
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:.25rem" onclick="doSubmitOtp()">Vérifier</button>
+        <div style="text-align:center;margin-top:1rem">
+          <a id="otp-resend-link" onclick="doResendOtp()" style="font-size:.82rem;color:var(--muted);cursor:pointer">Renvoyer le code</a>
+        </div>
+      </div>
+    </div>
+    <div id="toast-container"></div>
+  `;
+  setTimeout(() => document.getElementById('otp-code')?.focus(), 100);
+}
+
+async function doSubmitOtp() {
+  const code = (document.getElementById('otp-code')?.value || '').trim();
+  if (!code) return toast('Entrez le code reçu par email', 'warn');
+  try {
+    await api.verifyOtp(code);
+    toast('Email vérifié !', 'success');
+    await _checkStaffAndRoute();
+  } catch(e) {
+    toast(e.message || 'Code incorrect ou expiré', 'error');
+  }
+}
+
+async function doResendOtp() {
+  const link = document.getElementById('otp-resend-link');
+  if (link) { link.style.pointerEvents = 'none'; link.textContent = 'Envoi…'; }
+  try {
+    await api.resendOtp();
+    toast('Nouveau code envoyé', 'success');
+  } catch(e) {
+    toast('Erreur lors de l\'envoi', 'error');
+  }
+  if (link) {
+    setTimeout(() => { link.style.pointerEvents = ''; link.textContent = 'Renvoyer le code'; }, 30000);
   }
 }
 

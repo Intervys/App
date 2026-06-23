@@ -365,6 +365,87 @@ onRecordCreate(function(e) {
 }, "users");
 
 // ════════════════════════════════════════
+// VÉRIFICATION OTP
+// POST /api/verify-otp  { code: "123456" }  (auth requise)
+// POST /api/resend-otp  {}                   (auth requise)
+// ════════════════════════════════════════
+routerAdd("POST", "/api/verify-otp", function(e) {
+    var info = e.requestInfo();
+    var auth = info.auth;
+    if (!auth) return e.json(401, { error: "Non authentifié" });
+
+    var code = String((info.body && info.body.code) || "").trim();
+    if (!code) return e.json(400, { error: "Code manquant" });
+
+    if (auth.getBool("email_verified")) return e.json(200, { ok: true });
+
+    var stored  = auth.getString("otp_code");
+    var expires = auth.getString("otp_expires");
+    if (!stored) return e.json(400, { error: "Aucun code en attente" });
+
+    if (new Date(expires).getTime() < Date.now()) return e.json(400, { error: "Code expiré — demandez-en un nouveau" });
+    if (code !== stored) return e.json(400, { error: "Code incorrect" });
+
+    auth.set("email_verified", true);
+    auth.set("otp_code", "");
+    auth.set("otp_expires", "");
+    try { $app.saveNoValidate(auth); } catch(se) { return e.json(500, { error: "Erreur sauvegarde : " + se }); }
+
+    return e.json(200, { ok: true });
+});
+
+routerAdd("POST", "/api/resend-otp", function(e) {
+    var info = e.requestInfo();
+    var auth = info.auth;
+    if (!auth) return e.json(401, { error: "Non authentifié" });
+
+    if (auth.getBool("email_verified")) return e.json(200, { ok: true });
+
+    var email = auth.getString("email");
+    var name  = auth.getString("name") || "Client";
+
+    var otp = String(Math.floor(100000 + Math.random() * 900000));
+    var expires = new Date(Date.now() + 15 * 60000).toISOString();
+    auth.set("otp_code", otp);
+    auth.set("otp_expires", expires);
+    try { $app.saveNoValidate(auth); } catch(se) { return e.json(500, { error: "Erreur : " + se }); }
+
+    var from = { address: "noreply@example.com", name: "Intervys" };
+    try { var s = $app.settings(); var a = s.meta && s.meta.senderAddress ? s.meta.senderAddress : ""; from = { address: a||"noreply@example.com", name: s.meta && s.meta.senderName ? s.meta.senderName : "Intervys" }; } catch(x) {}
+
+    var brandName = from.name;
+    var brandColor = "#4f46e5";
+    try {
+        var trows = $app.findRecordsByFilter("settings", "key='theme' || key='site_name'", "", 10, 0);
+        for (var ti = 0; ti < trows.length; ti++) {
+            var tk = trows[ti].getString("key"); var tv = trows[ti].getString("value");
+            if (tk === "site_name" && tv) brandName = tv;
+            if (tk === "theme" && tv) { try { var th = JSON.parse(tv); brandColor = th["--blue"] || th["--accent"] || th["--primary"] || brandColor; } catch(pe) {} }
+        }
+    } catch(se) {}
+
+    try {
+        var msg = new MailerMessage({
+            from: from, to: [{ address: email }],
+            subject: "Votre nouveau code : " + otp,
+            html: "<div style='font-family:Arial,sans-serif;background:#0d1117;padding:40px 20px'>"
+                + "<div style='background:#111820;border-radius:12px;padding:32px;max-width:480px;margin:0 auto;border:1px solid rgba(79,70,229,.3)'>"
+                + "<div style='text-align:center;margin-bottom:24px;font-size:1.8rem;font-weight:800;color:" + brandColor + "'>" + brandName + "</div>"
+                + "<h2 style='color:#e2e8f0;font-size:1.1rem;margin:0 0 12px'>Bonjour " + name + ",</h2>"
+                + "<p style='color:#8fa8c0;margin:0 0 24px'>Votre nouveau code de vérification :</p>"
+                + "<div style='background:#0a1628;border:2px solid " + brandColor + ";border-radius:12px;padding:24px;text-align:center;margin-bottom:24px'>"
+                + "<div style='font-size:2.8rem;font-weight:800;letter-spacing:.3em;color:" + brandColor + ";font-family:monospace'>" + otp + "</div>"
+                + "<div style='font-size:.75rem;color:#5f7a96;margin-top:8px'>Valable 15 minutes</div></div>"
+                + "<p style='color:#5f7a96;font-size:.82rem;text-align:center'>Si vous n'avez pas demandé ce code, ignorez cet email.</p>"
+                + "</div></div>",
+        });
+        $app.newMailClient().send(msg);
+    } catch(me) { return e.json(500, { error: "Erreur envoi email : " + me }); }
+
+    return e.json(200, { ok: true });
+});
+
+// ════════════════════════════════════════
 // ENVOI EMAIL DEVIS/FACTURE avec PDF en pièce jointe
 // POST /send-doc  { collection, id, pdfB64 }
 // ════════════════════════════════════════
