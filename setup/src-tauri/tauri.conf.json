@@ -1,7 +1,7 @@
 {
     "productName":  "Intervys Setup",
     "version":  "0.2.0",
-    "identifier":  "fr.Intervys.setup",
+    "identifier":  "fr.intervys.setup",
     "build":  {
                   "frontendDist":  "../src"
               },
