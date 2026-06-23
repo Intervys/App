@@ -74,6 +74,13 @@ class API {
     });
   }
 
+  async verifyOtp(code) {
+    return this.req('POST', '/api/verify-otp', { code });
+  }
+  async resendOtp() {
+    return this.req('POST', '/api/resend-otp', {});
+  }
+
   logout() {
     this.token = ''; this.user = null; this.isAdmin = false;
     window._isStaff = false; window._staffSections = [];
