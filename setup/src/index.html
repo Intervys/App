@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intervys Setup</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none}
+:root{--blue:#1e90ff;--bg:#07090e;--surface:#0f1117;--border:rgba(255,255,255,.08);--text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;--green:#22c55e;--red:#ef4444}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(30,144,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(30,144,255,.03) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
+
+.header{display:flex;align-items:center;gap:.75rem;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);flex-shrink:0;z-index:1}
+.header img{width:36px;height:36px;object-fit:contain}
+.header-title{font-size:1.1rem;font-weight:600;color:#fff}
+.header-sub{font-size:.75rem;color:var(--muted2)}
+.version{margin-left:auto;font-size:.65rem;color:var(--muted);background:rgba(255,255,255,.05);padding:2px 8px;border-radius:10px}
+
+.main{flex:1;display:flex;overflow:hidden;z-index:1}
+.steps-nav{width:180px;border-right:1px solid var(--border);padding:1.25rem 0;flex-shrink:0}
+.step-nav{display:flex;align-items:center;gap:.6rem;padding:.55rem 1.25rem;font-size:.82rem;color:var(--muted);cursor:default}
+.step-nav::before{content:'';width:6px;height:6px;border-radius:50%;border:1.5px solid currentColor;flex-shrink:0}
+.step-nav.active{color:var(--blue)}
+.step-nav.active::before{background:var(--blue);border-color:var(--blue)}
+.step-nav.done{color:var(--green)}
+.step-nav.done::before{background:var(--green);border-color:var(--green)}
+.step-nav-line{width:1.5px;height:16px;background:var(--border);margin:2px 0 2px calc(1.25rem + 2px)}
+
+.content{flex:1;overflow-y:auto;padding:1.5rem}
+.screen{display:none}
+.screen.active{display:block}
+.screen-title{font-size:1.1rem;font-weight:600;color:#fff;margin-bottom:.35rem}
+.screen-sub{font-size:.82rem;color:var(--muted2);margin-bottom:1.5rem;line-height:1.6}
+
+.mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.mode-card{padding:1.25rem;background:rgba(255,255,255,.03);border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s}
+.mode-card:hover,.mode-card.selected{border-color:var(--blue);background:rgba(30,144,255,.06)}
+.mode-card-icon{font-size:2rem;margin-bottom:.75rem}
+.mode-card-title{font-weight:600;margin-bottom:.3rem}
+.mode-card-desc{font-size:.78rem;color:var(--muted2);line-height:1.5}
+.mode-card-badge{display:inline-block;font-size:.65rem;padding:2px 8px;border-radius:10px;margin-top:.5rem}
+.badge-easy{background:rgba(34,197,94,.15);color:#86efac}
+.badge-adv{background:rgba(245,158,11,.15);color:#fbbf24}
+
+.checks{display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.5rem}
+.check-item{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:6px;font-size:.85rem}
+.check-status.ok{color:var(--green)}
+.check-status.warn{color:#f59e0b}
+
+.progress-wrap{margin-bottom:1rem}
+.progress-label{font-size:.8rem;color:var(--muted2);margin-bottom:.4rem;display:flex;justify-content:space-between}
+.progress-bar{height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s;width:0%}
+.progress-log{margin-top:.75rem;font-size:.72rem;color:var(--muted);font-family:Consolas,monospace;max-height:160px;overflow-y:auto;background:rgba(0,0,0,.3);border-radius:4px;padding:.5rem .75rem;line-height:1.8}
+
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:'Segoe UI',sans-serif;font-weight:500;font-size:.85rem;padding:.55rem 1.2rem;border-radius:6px;border:none;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#1a7fe0}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:rgba(255,255,255,.06);color:var(--muted2);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+.btn-danger{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.btn-danger:hover{background:rgba(239,68,68,.25);border-color:#ef4444;color:#fff}
+
+.footer{padding:.75rem 1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;z-index:1}
+.footer-info{font-size:.72rem;color:var(--muted)}
+
+.url-card{background:rgba(30,144,255,.08);border:1px solid rgba(30,144,255,.15);border-radius:6px;padding:.75rem 1rem;margin-bottom:.5rem;cursor:pointer;transition:background .2s}
+.url-card:hover{background:rgba(30,144,255,.15)}
+.url-label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem}
+.url-val{color:var(--blue);font-size:.88rem}
+
+input[type=text]{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);font-size:.82rem;padding:.55rem .75rem;border-radius:6px;outline:none;font-family:'Segoe UI',sans-serif}
+input[type=text]:focus{border-color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <img src="logo.png" alt="Intervys">
+  <div>
+    <div class="header-title">Intervys Setup</div>
+    <div class="header-sub">Installation guidée</div>
+  </div>
+  <div class="version">v0.2.0-beta</div>
+</div>
+
+<div class="main">
+  <div class="steps-nav">
+    <div class="step-nav active" id="nav1">Mode</div>
+    <div class="step-nav-line"></div>
+    <div class="step-nav" id="nav2">Prérequis</div>
+    <div class="step-nav-line"></div>
+    <div class="step-nav" id="nav3">Dossier</div>
+    <div class="step-nav-line"></div>
+    <div class="step-nav" id="nav4">Installation</div>
+    <div class="step-nav-line"></div>
+    <div class="step-nav" id="nav5">Terminé</div>
+  </div>
+
+  <div class="content">
+
+    <!-- Écran 1 : Choix du mode -->
+    <div class="screen active" id="screen1">
+      <div class="screen-title">Choisir le mode d'installation</div>
+      <div class="screen-sub">Intervys peut fonctionner avec Docker ou directement en mode natif Windows (recommandé pour tester).</div>
+      <div class="mode-cards">
+        <div class="mode-card" id="card-native" onclick="selectMode('native')">
+          <div class="mode-card-icon">🪟</div>
+          <div class="mode-card-title">Mode natif Windows</div>
+          <div class="mode-card-desc">PocketBase téléchargé automatiquement. Aucun prérequis, fonctionne immédiatement.</div>
+          <span class="mode-card-badge badge-easy">Recommandé pour tester</span>
+        </div>
+        <div class="mode-card" id="card-docker" onclick="selectMode('docker')">
+          <div class="mode-card-icon">🐳</div>
+          <div class="mode-card-title">Mode Docker</div>
+          <div class="mode-card-desc">Nécessite Docker Desktop + WSL2. Recommandé pour la production.</div>
+          <span class="mode-card-badge badge-adv">Docker requis</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Écran 2 : Prérequis -->
+    <div class="screen" id="screen2">
+      <div class="screen-title">Vérification des prérequis</div>
+      <div class="screen-sub" id="prereq-sub">Vérification en cours...</div>
+      <div class="checks" id="checks-list"></div>
+    </div>
+
+    <!-- Écran 3 : Dossier -->
+    <div class="screen" id="screen3">
+      <div class="screen-title">Dossier d'installation</div>
+      <div class="screen-sub">Choisissez où installer Intervys. Le dossier sera créé automatiquement.</div>
+      <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+        <input type="text" id="install-dir" readonly>
+        <button class="btn btn-ghost" onclick="browseDir()">Parcourir…</button>
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);line-height:1.7">
+        📁 Un sous-dossier <strong style="color:var(--muted2)">Intervys/</strong> sera créé à l'emplacement choisi.<br>
+        🔒 Environ 50 MB nécessaires (dont PocketBase téléchargé depuis GitHub).
+      </div>
+    </div>
+
+    <!-- Écran 4 : Installation -->
+    <div class="screen" id="screen4">
+      <div class="screen-title">Installation en cours</div>
+      <div class="screen-sub">Veuillez patienter pendant l'installation d'Intervys…</div>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span id="progress-label">Préparation…</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-bar"></div></div>
+      </div>
+      <div class="progress-log" id="progress-log"></div>
+    </div>
+
+    <!-- Écran 6 : Désinstallation -->
+    <div class="screen" id="screen6">
+      <div class="screen-title" style="color:var(--red)">Désinstaller Intervys</div>
+      <div class="screen-sub" id="uninst-sub">Cette opération supprimera complètement Intervys de votre ordinateur : serveur, données, raccourcis, démarrage automatique. <strong style="color:var(--text)">Cette action est irréversible.</strong></div>
+      <div id="uninst-progress" style="display:none">
+        <div class="progress-wrap">
+          <div class="progress-label"><span id="uninst-label">Désinstallation…</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="uninst-bar" style="background:var(--red)"></div></div>
+        </div>
+        <div class="progress-log" id="uninst-log"></div>
+      </div>
+    </div>
+
+    <!-- Écran 5 : Succès -->
+    <div class="screen" id="screen5">
+      <div style="text-align:center;padding:.75rem 0 1.25rem">
+        <div style="font-size:2.5rem;margin-bottom:.5rem">🎉</div>
+        <div style="font-size:1.2rem;font-weight:700;color:var(--green);margin-bottom:.25rem">Intervys est prêt !</div>
+      </div>
+
+      <!-- Credentials générés -->
+      <div style="background:rgba(30,144,255,.07);border:1px solid rgba(30,144,255,.2);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1rem">
+        <div style="font-size:.65rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem">Vos identifiants de connexion</div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <span style="font-size:.75rem;color:var(--muted);width:90px;flex-shrink:0">Identifiant</span>
+            <code id="cred-email" style="background:var(--bg3);padding:4px 10px;border-radius:4px;font-size:.85rem;color:var(--text);flex:1;user-select:text;-webkit-user-select:text;cursor:text">admin@Intervys.local</code>
+            <button onclick="copyText('cred-email',this)" style="flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--muted2);border-radius:4px;padding:2px 10px;font-size:.72rem;cursor:pointer;transition:all .2s" title="Copier">📋</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <span style="font-size:.75rem;color:var(--muted);width:90px;flex-shrink:0">Mot de passe</span>
+            <code id="cred-password" style="background:var(--bg3);padding:4px 10px;border-radius:4px;font-size:.85rem;color:var(--blue);flex:1;letter-spacing:.05em;user-select:text;-webkit-user-select:text;cursor:text">—</code>
+            <button onclick="copyText('cred-password',this)" style="flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--muted2);border-radius:4px;padding:2px 10px;font-size:.72rem;cursor:pointer;transition:all .2s" title="Copier">📋</button>
+          </div>
+        </div>
+        <div style="margin-top:.75rem;font-size:.72rem;color:var(--orange)">⚠️ Notez ce mot de passe maintenant — il ne sera plus affiché.</div>
+      </div>
+
+      <div class="url-card" onclick="openUrl('http://localhost:8090')">
+        <div class="url-label">Ouvrir Intervys</div>
+        <div class="url-val">http://localhost:8090</div>
+      </div>
+
+      <div style="margin-top:.75rem;padding:.65rem 1rem;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15);border-radius:6px;font-size:.78rem;color:var(--muted2);line-height:1.8">
+        Connectez-vous avec les identifiants ci-dessus.<br>
+        📁 Un raccourci <strong style="color:var(--text)">Intervys.bat</strong> a été créé sur votre bureau.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer">
+  <div class="footer-info" id="footer-info">Bienvenue dans l'installeur Intervys</div>
+  <div style="display:flex;gap:.5rem">
+    <button class="btn btn-ghost" id="btn-back" onclick="goBack()" style="display:none">← Retour</button>
+    <button class="btn btn-primary" id="btn-next" onclick="goNext()" disabled>Choisir un mode</button>
+  </div>
+</div>
+
+<script>
+// ── Tauri v2 API ──────────────────────────────────────────────────
+let _invoke = null;
+let _listen  = null;
+
+let currentStep  = 1;
+let selectedMode = null;
+let installDir   = 'C:\\Intervys';
+
+function invoke(cmd, args) { return _invoke(cmd, args); }
+function listen(event, cb) { return _listen(event, cb); }
+
+async function init() {
+  while (!window.__TAURI__ || !window.__TAURI__.core) {
+    await new Promise(r => setTimeout(r, 50));
+  }
+  _invoke = window.__TAURI__.core.invoke;
+  _listen = window.__TAURI__.event.listen;
+
+  selectMode('native');
+
+  try { installDir = await _invoke('get_default_dir'); }
+  catch(e) { installDir = 'C:\\Intervys'; }
+
+  // Détecter si Intervys est déjà installé
+  try {
+    const installed = await _invoke('is_installed');
+    if (installed) {
+      const banner = document.createElement('div');
+      banner.id = 'installed-banner';
+      banner.style.cssText = 'margin-top:1rem;padding:.85rem 1.1rem;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:1rem';
+      banner.innerHTML = `
+        <div>
+          <div style="font-size:.85rem;font-weight:600;color:#fca5a5">⚠️ Intervys est déjà installé</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem">Vous pouvez réinstaller ou désinstaller complètement.</div>
+        </div>
+        <button class="btn btn-danger" onclick="startUninstall()">🗑 Désinstaller</button>`;
+      document.getElementById('screen1').appendChild(banner);
+    }
+  } catch(e) {}
+}
+
+function selectMode(mode) {
+  selectedMode = mode;
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('card-' + mode).classList.add('selected');
+  const btn = document.getElementById('btn-next');
+  btn.textContent = 'Suivant →';
+  btn.disabled = false;
+  setFooter('Mode sélectionné : ' + (mode === 'docker' ? 'Docker' : 'Natif Windows'));
+}
+
+async function goNext() {
+  if (currentStep === 1) await handleStep1();
+  else if (currentStep === 2) await handleStep2();
+  else if (currentStep === 3) await handleStep3();
+  else if (currentStep === 5) openUrl('http://localhost:8090');
+}
+
+function goBack() {
+  if (currentStep > 1) showStep(currentStep - 1);
+}
+
+function showStep(n) {
+  currentStep = n;
+  for (let i = 1; i <= 5; i++) {
+    const s   = document.getElementById('screen' + i);
+    const nav = document.getElementById('nav' + i);
+    if (s)   s.className   = 'screen'   + (i === n ? ' active' : '');
+    if (nav) nav.className = 'step-nav' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+  document.getElementById('btn-back').style.display = (n > 1 && n < 4) ? 'flex' : 'none';
+  // Mettre à jour le champ dossier quand on arrive à l'étape 3
+  if (n === 3) {
+    const el = document.getElementById('install-dir');
+    if (el) el.value = installDir;
+  }
+}
+
+// ── Actions prérequis Docker ─────────────────────────────────────
+
+async function installDockerClick() {
+  await invoke('install_docker');
+  setFooter('Page Docker ouverte — installez puis cliquez Re-vérifier');
+}
+
+async function installWslClick() {
+  setFooter('Activation WSL2 en cours…');
+  try {
+    const out = await invoke('enable_wsl');
+    setFooter('WSL2 activé — un redémarrage Windows peut être nécessaire');
+    setTimeout(() => checkPrereqs(), 2000);
+  } catch(e) {
+    setFooter('Erreur WSL2 : ' + e);
+  }
+}
+
+// ── Étape 1 → 2 : prérequis ──────────────────────────────────────
+
+async function handleStep1() {
+  showStep(2);
+  await checkPrereqs();
+}
+
+async function checkPrereqs() {
+  const list = document.getElementById('checks-list');
+  const sub  = document.getElementById('prereq-sub');
+  list.innerHTML = '';
+
+  if (selectedMode === 'native') {
+    sub.textContent = 'Mode natif — aucun prérequis.';
+    list.innerHTML = `
+      <div class="check-item">
+        <div style="font-size:1.2rem">✅</div>
+        <div style="flex:1">Windows 10/11 (x64)</div>
+        <div class="check-status ok">✓ Détecté</div>
+      </div>
+      <div class="check-item">
+        <div style="font-size:1.2rem">🌐</div>
+        <div style="flex:1">Connexion internet (pour télécharger PocketBase ~16 MB)</div>
+        <div class="check-status ok">Requise</div>
+      </div>`;
+    document.getElementById('btn-next').textContent = 'Suivant →';
+    document.getElementById('btn-next').disabled = false;
+    setFooter('Prêt pour l\'installation');
+  } else {
+    sub.textContent = 'Vérification de Docker Desktop et WSL2…';
+    const docker = await invoke('check_docker');
+    const wsl    = await invoke('check_wsl');
+
+    const btnStyle = 'display:inline-block;margin-top:.5rem;padding:.35rem .85rem;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;border:none;';
+
+    list.innerHTML = `
+      <div class="check-item">
+        <div style="font-size:1.2rem">🐳</div>
+        <div style="flex:1">
+          <div>Docker Desktop</div>
+          ${!docker ? `<button style="${btnStyle}background:#1e90ff;color:#fff" onclick="installDockerClick()">Télécharger Docker Desktop</button>` : ''}
+        </div>
+        <div class="check-status ${docker ? 'ok' : 'warn'}">${docker ? '✓ Installé' : '✗ Non détecté'}</div>
+      </div>
+      <div class="check-item">
+        <div style="font-size:1.2rem">🐧</div>
+        <div style="flex:1">
+          <div>WSL2</div>
+          ${!wsl ? `<button style="${btnStyle}background:#1e90ff;color:#fff" onclick="installWslClick()">Activer WSL2</button>` : ''}
+        </div>
+        <div class="check-status ${wsl ? 'ok' : 'warn'}">${wsl ? '✓ Activé' : '✗ Non activé'}</div>
+      </div>
+      ${(!docker || !wsl) ? `<div style="margin-top:.5rem;padding:.6rem .9rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:6px;font-size:.78rem;color:#fbbf24;line-height:1.7">
+        ${!docker ? '→ Installez Docker Desktop depuis le bouton ci-dessus puis relancez la vérification.<br>' : ''}
+        ${!wsl ? '→ Cliquez "Activer WSL2" (redémarrage Windows requis après).' : ''}
+      </div>` : ''}`;
+
+    if (docker && wsl) {
+      document.getElementById('btn-next').textContent = 'Suivant →';
+      document.getElementById('btn-next').disabled = false;
+      setFooter('Prérequis OK');
+    } else {
+      document.getElementById('btn-next').textContent = '↺ Re-vérifier';
+      document.getElementById('btn-next').disabled = false;
+      document.getElementById('btn-next').onclick = () => { checkPrereqs(); };
+      setFooter('Installez les prérequis puis cliquez Re-vérifier');
+      return;
+    }
+  }
+}
+
+// ── Étape 2 → 3 ──────────────────────────────────────────────────
+
+async function handleStep2() {
+  showStep(3);
+  document.getElementById('btn-next').textContent = 'Installer →';
+  document.getElementById('btn-next').disabled = false;
+  document.getElementById('btn-next').onclick = goNext;
+}
+
+// ── Étape 3 → 4 : lancer le déploiement ─────────────────────────
+
+async function handleStep3() {
+  installDir = document.getElementById('install-dir').value;
+  if (!installDir) { setFooter('Choisissez un dossier'); return; }
+  showStep(4);
+  document.getElementById('btn-next').style.display = 'none';
+  await deploy();
+}
+
+async function deploy() {
+  const log   = document.getElementById('progress-log');
+  const bar   = document.getElementById('progress-bar');
+  const label = document.getElementById('progress-label');
+  const pct   = document.getElementById('progress-pct');
+
+  function addLog(msg) {
+    log.innerHTML += '› ' + msg + '<br>';
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function setError(msg) {
+    addLog('✗ ERREUR : ' + msg);
+    bar.style.width = '0%';
+    label.textContent = 'Échec';
+    setFooter('Erreur — voir le log ci-dessus');
+    const btn = document.getElementById('btn-next');
+    btn.style.display = 'flex';
+    btn.textContent   = '← Retour';
+    btn.disabled      = false;
+    btn.onclick       = () => showStep(3);
+  }
+
+  addLog('Dossier cible : ' + installDir);
+  addLog('Mode : ' + selectedMode);
+  addLog('Tauri API : ' + (typeof window.__TAURI__ !== 'undefined' ? 'OK' : 'MANQUANTE'));
+
+  try {
+    // Enregistrer les listeners AVANT le invoke pour ne rien rater
+    const unlistenLog      = await listen('deploy-log', (e) => { addLog(e.payload); });
+    const unlistenProgress = await listen('download-progress', (e) => {
+      const p = e.payload;
+      bar.style.width   = p.pct + '%';
+      pct.textContent   = p.pct + '%';
+      label.textContent = p.label + '…';
+    });
+
+    addLog('Listeners enregistrés, démarrage…');
+    setFooter('Installation en cours…');
+
+    let creds = {};
+    if (selectedMode === 'docker') {
+      await invoke('deploy_docker', { installDir });
+    } else {
+      const result = await invoke('deploy_native', { installDir });
+      try { creds = JSON.parse(result); } catch(e) {}
+    }
+
+    bar.style.width   = '100%';
+    pct.textContent   = '100%';
+    label.textContent = 'Installation terminée !';
+    setFooter('Intervys installé avec succès !');
+
+    setTimeout(() => {
+      showStep(5);
+      if (creds.password) {
+        const el = document.getElementById('cred-password');
+        if (el) el.textContent = creds.password;
+      }
+      const btn = document.getElementById('btn-next');
+      btn.style.display = 'flex';
+      btn.textContent   = 'Ouvrir Intervys →';
+      btn.disabled      = false;
+      btn.onclick       = () => openUrl('http://localhost:8090');
+    }, 1200);
+
+  } catch(e) {
+    setError(typeof e === 'string' ? e : JSON.stringify(e));
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+
+async function browseDir() {
+  try {
+    const { open } = window.__TAURI__.dialog;
+    const dir = await open({ directory: true, title: 'Choisir le dossier d\'installation' });
+    if (dir) {
+      const full = dir + '\\Intervys';
+      document.getElementById('install-dir').value = full;
+      installDir = full;
+    }
+  } catch(e) { console.warn('Dialog error:', e); }
+}
+
+function openUrl(url) { invoke('open_browser', { url }); }
+
+function copyText(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const text = el.textContent.trim();
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '✓';
+      btn.style.color = '#4ade80';
+      setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+    });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    const orig = btn.textContent;
+    btn.textContent = '✓'; btn.style.color = '#4ade80';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+  }
+}
+function setFooter(msg) { document.getElementById('footer-info').textContent = msg; }
+
+function startUninstall() {
+  // Remplacer les boutons du footer par Annuler / Confirmer
+  const footer = document.querySelector('.footer > div:last-child');
+  footer.innerHTML = `
+    <button class="btn btn-ghost" onclick="location.reload()">← Annuler</button>
+    <button class="btn btn-danger" id="btn-confirm-uninst" onclick="doUninstall()">🗑 Confirmer la désinstallation</button>`;
+  document.getElementById('btn-back').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'none';
+
+  // Afficher l'écran désinstallation
+  for (let i = 1; i <= 6; i++) {
+    const s   = document.getElementById('screen' + i);
+    const nav = document.getElementById('nav' + i);
+    if (s)   s.className = 'screen' + (i === 6 ? ' active' : '');
+    if (nav) nav.className = 'step-nav';
+  }
+  setFooter('Cliquez "Confirmer" pour tout supprimer, ou "Annuler" pour revenir.');
+}
+
+async function doUninstall() {
+  document.getElementById('btn-confirm-uninst').disabled = true;
+  document.getElementById('uninst-progress').style.display = 'block';
+  document.getElementById('uninst-sub').style.display = 'none';
+
+  const log   = document.getElementById('uninst-log');
+  const bar   = document.getElementById('uninst-bar');
+  const label = document.getElementById('uninst-label');
+
+  function addLog(msg) { log.innerHTML += '› ' + msg + '<br>'; log.scrollTop = log.scrollHeight; }
+
+  // Écouter les événements de progression émis par Rust
+  const unlisten = await _listen('uninst-step', (e) => {
+    const { msg, pct } = e.payload;
+    bar.style.width = pct + '%';
+    label.textContent = msg;
+    addLog(msg);
+    if (pct >= 100) {
+      bar.style.background = 'var(--green)';
+      label.style.color = 'var(--green)';
+      document.querySelector('#screen6 .screen-title').style.color = 'var(--green)';
+      document.querySelector('#screen6 .screen-title').textContent = '✓ Désinstallation réussie';
+      setFooter('Intervys a été complètement supprimé.');
+      const footer = document.querySelector('.footer > div:last-child');
+      footer.innerHTML = `<button class="btn btn-primary" onclick="window.close()">Fermer</button>`;
+    }
+  });
+
+  try {
+    await _invoke('uninstall');
+    unlisten();
+  } catch(e) {
+    unlisten();
+    addLog('✗ Erreur : ' + e);
+    bar.style.background = 'var(--red)';
+    label.textContent = 'Erreur';
+    setFooter('Erreur : ' + e);
+    document.getElementById('btn-confirm-uninst').disabled = false;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

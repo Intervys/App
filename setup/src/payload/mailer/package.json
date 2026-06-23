@@ -1,0 +1,15 @@
+{
+  "name": "Intervys-mailer",
+  "version": "1.0.0",
+  "dependencies": {
+    "nodemailer": "^9.0.0"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^5.11.0"
+  },
+  "scripts": {
+    "build:win": "pkg server.js --target node18-win-x64 --output ../../../src-tauri/binaries/Intervys-mailer-x86_64-pc-windows-msvc.exe",
+    "build:mac": "pkg server.js --target node18-mac-x64 --output ../../../src-tauri/binaries/Intervys-mailer-x86_64-apple-darwin",
+    "build:linux": "pkg server.js --target node18-linux-x64 --output ../../../src-tauri/binaries/Intervys-mailer-x86_64-unknown-linux-gnu"
+  }
+}

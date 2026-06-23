@@ -1,0 +1,53 @@
+name: Intervys
+
+services:
+
+  # ── Reverse proxy nginx : vitrine + app + routes API ──
+  nginx:
+    image: nginx:alpine
+    container_name: Intervys_nginx
+    ports:
+      - "${PORT:-80}:80"
+    volumes:
+      - ./vitrine:/www/vitrine:ro
+      - ./app:/www/app:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - pocketbase
+    restart: always
+    networks:
+      - Intervys
+
+  # ── PocketBase : API + base de données ──
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: Intervys_pocketbase
+    restart: always
+    command: >
+      serve
+      --http=0.0.0.0:8090
+      --dir=/pb_data
+      --hooksDir=/pb_hooks
+      --migrationsDir=/pb_migrations
+    volumes:
+      - ./pocketbase/data:/pb_data
+      - ./pocketbase/migrations:/pb_migrations:ro
+      - ./pocketbase/hooks:/pb_hooks:ro
+    environment:
+      - MAILER_URL=http://Intervys_mailer:3001/send
+    networks:
+      - Intervys
+
+  # ── Mailer : envoi d'emails via SMTP ──
+  mailer:
+    build: ./mailer
+    container_name: Intervys_mailer
+    restart: always
+    environment:
+      - MAILER_SECRET=${MAILER_SECRET:-Intervys-mailer-2026}
+    networks:
+      - Intervys
+
+networks:
+  Intervys:
+    driver: bridge

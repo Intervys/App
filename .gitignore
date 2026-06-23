@@ -1,0 +1,16 @@
+# Données PocketBase (ne jamais committer la BDD)
+pocketbase/data/
+
+# Build Rust/Tauri
+setup/src-tauri/target/
+
+# Node
+mailer/node_modules/
+setup/src/payload/mailer/node_modules/
+
+# Env local
+.env
+
+# Binaire Windows produit localement
+intervio-setup.exe
+*.exe

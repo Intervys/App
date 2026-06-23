@@ -1,0 +1,148 @@
+name: Intervys
+
+# ─────────────────────────────────────────────────────────────
+#  Installation en une commande :
+#
+#    curl -fsSL https://github.com/Intervys/app/releases/latest/download/docker-compose.install.yml \
+#         -o docker-compose.yml && docker compose up -d
+#
+#  Variables d'environnement (dans .env) :
+#    PORT            Port HTTP exposé              (défaut : 80)
+#    MAILER_SECRET   Token partagé PB ↔ mailer     (défaut : Intervys-mailer-2026)
+#    PB_ADMIN_EMAIL  Email superadmin PocketBase
+#    PB_ADMIN_PASSWORD Mot de passe superadmin
+# ─────────────────────────────────────────────────────────────
+
+x-deploy-url: &deploy-url
+  DEPLOY_URL: ${DEPLOY_URL:-https://github.com/Intervys/app/releases/latest/download/Intervys-deploy.zip}
+
+services:
+
+  # ── Télécharge et extrait les fichiers de l'application ──
+  init:
+    image: alpine:latest
+    container_name: Intervys_init
+    environment:
+      <<: *deploy-url
+    command: >
+      sh -c "
+        if [ -f /marker/.done ]; then
+          echo '✓ Fichiers déjà présents, init ignoré.';
+          exit 0;
+        fi &&
+        echo '⬇  Téléchargement Intervys...' &&
+        apk add --no-cache curl unzip > /dev/null 2>&1 &&
+        curl -fsSL \"$$DEPLOY_URL\" -o /tmp/deploy.zip || { echo '✗ Téléchargement échoué'; exit 1; } &&
+        unzip -q /tmp/deploy.zip -d /tmp/deploy &&
+        echo '📂 Extraction des fichiers...' &&
+        cp -r /tmp/deploy/app/.        /out/app/ &&
+        cp -r /tmp/deploy/vitrine/.    /out/vitrine/ &&
+        cp    /tmp/deploy/nginx.conf   /out/nginx/default.conf &&
+        cp -r /tmp/deploy/migrations/. /out/migrations/ &&
+        cp -r /tmp/deploy/hooks/.      /out/hooks/ &&
+        cp -r /tmp/deploy/mailer/.     /out/mailer/ &&
+        touch /marker/.done &&
+        echo '✅ Prêt.'
+      "
+    volumes:
+      - app_files:/out/app
+      - vitrine_files:/out/vitrine
+      - nginx_conf:/out/nginx
+      - migrations:/out/migrations
+      - hooks:/out/hooks
+      - mailer_src:/out/mailer
+      - init_marker:/marker
+    restart: "no"
+
+  # ── Reverse proxy : vitrine + admin SPA + routes API ──
+  nginx:
+    image: nginx:alpine
+    container_name: Intervys_nginx
+    ports:
+      - "${PORT:-80}:80"
+    volumes:
+      - vitrine_files:/www/vitrine:ro
+      - app_files:/www/app:ro
+      - nginx_conf:/etc/nginx/conf.d:ro
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: always
+    networks:
+      - Intervys
+
+  # ── PocketBase : API + base de données ──
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: Intervys_pocketbase
+    restart: always
+    command: >
+      serve
+      --http=0.0.0.0:8090
+      --dir=/pb_data
+      --hooksDir=/pb_hooks
+      --migrationsDir=/pb_migrations
+    volumes:
+      - pb_data:/pb_data
+      - migrations:/pb_migrations:ro
+      - hooks:/pb_hooks:ro
+    environment:
+      - MAILER_URL=http://Intervys_mailer:3001/send
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    networks:
+      - Intervys
+
+  # ── Mailer : envoi d'emails via SMTP ──
+  mailer:
+    image: node:20-alpine
+    container_name: Intervys_mailer
+    working_dir: /app
+    command: sh -c "npm install --production --silent && node server.js"
+    volumes:
+      - mailer_src:/app
+    environment:
+      - MAILER_SECRET=${MAILER_SECRET:-Intervys-mailer-2026}
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: always
+    networks:
+      - Intervys
+
+  # ── Création du compte superadmin au premier démarrage ──
+  setup:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: Intervys_setup
+    entrypoint: >
+      sh -c "
+        sleep 5 &&
+        /pb/pocketbase superuser upsert
+          \"${PB_ADMIN_EMAIL:-admin@Intervys.local}\"
+          \"${PB_ADMIN_PASSWORD:-changeme123}\"
+          --dir=/pb_data &&
+        echo '✓ Compte admin créé.'
+      "
+    volumes:
+      - pb_data:/pb_data
+    depends_on:
+      pocketbase:
+        condition: service_started
+    restart: "no"
+    networks:
+      - Intervys
+
+networks:
+  Intervys:
+    driver: bridge
+
+volumes:
+  app_files:
+  vitrine_files:
+  nginx_conf:
+  migrations:
+  hooks:
+  mailer_src:
+  pb_data:
+  init_marker:

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog – Intervys</title>
+<meta name="description" content="Articles, tutoriels et conseils tech par Intervys — domotique, réseau, impression 3D, gaming et bien plus.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="img/logo.png">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .blog-page{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:8rem 2rem 4rem}
+  .blog-header{text-align:center;margin-bottom:4rem}
+  .blog-header .eyebrow{font-family:var(--FM);font-size:.72rem;color:var(--c1);letter-spacing:.18em;text-transform:uppercase;margin-bottom:.6rem}
+  .blog-header h1{font-family:var(--FD);font-size:clamp(2.2rem,5vw,3.5rem);font-weight:700;margin-bottom:.75rem}
+  .blog-header p{color:var(--muted2);font-size:1rem;max-width:520px;margin:0 auto}
+
+  .blog-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+  @media(max-width:900px){.blog-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.blog-grid{grid-template-columns:1fr}}
+
+  .blog-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .3s,transform .3s;cursor:pointer;text-decoration:none;display:block}
+  .blog-card:hover{border-color:rgba(30,144,255,.4);transform:translateY(-4px)}
+  .blog-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--c1),transparent);opacity:0;transition:opacity .3s}
+  .blog-card:hover::before{opacity:1}
+  .blog-card{position:relative}
+
+  .blog-card-img{height:180px;background:linear-gradient(135deg,rgba(30,144,255,.15),rgba(0,207,255,.08));display:flex;align-items:center;justify-content:center;font-size:3rem;border-bottom:1px solid var(--border)}
+  .blog-card-body{padding:1.25rem}
+  .blog-card-tag{font-family:var(--FM);font-size:.65rem;color:var(--c1);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem}
+  .blog-card-title{font-family:var(--FD);font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:.5rem;line-height:1.3}
+  .blog-card-excerpt{font-size:.85rem;color:var(--muted);line-height:1.7;margin-bottom:.75rem}
+  .blog-card-meta{font-family:var(--FM);font-size:.65rem;color:var(--muted);display:flex;gap:1rem}
+
+  .blog-soon{grid-column:1/-1;text-align:center;padding:4rem 2rem;color:var(--muted)}
+  .blog-soon h3{font-family:var(--FD);font-size:1.4rem;color:var(--muted2);margin-bottom:.5rem}
+  .blog-soon p{font-size:.9rem;margin-bottom:1.5rem}
+  .blog-soon-icon{font-size:3rem;margin-bottom:1rem}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="index.html">
+    <img src="img/logo.png" alt="Intervys">
+    <span class="brand-name">Intervys</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html#services">Services</a></li>
+    <li><a href="index.html#about">À propos</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+    <li><a href="blog.html" style="color:var(--c1)">Blog</a></li>
+  </ul>
+  <a class="nav-btn" href="https://Intervys.local" target="_blank">Espace client</a>
+</nav>
+
+<div class="blog-page">
+  <div class="blog-header">
+    <p class="eyebrow">// le blog</p>
+    <h1>Conseils &amp; Tutoriels</h1>
+    <p>Domotique, réseau, gaming, impression 3D — des articles pratiques pour vous aider à tirer le meilleur de la tech.</p>
+  </div>
+
+  <div class="blog-grid">
+    <div class="blog-soon">
+      <div class="blog-soon-icon">✍️</div>
+      <h3>Articles bientôt disponibles</h3>
+      <p>Le blog est en cours de rédaction. Revenez prochainement pour découvrir les premiers articles !</p>
+      <a href="index.html#contact" class="nav-btn" style="display:inline-block;padding:.6rem 1.5rem;text-decoration:none">Me notifier à la sortie</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="ft-brand">
+    <img src="img/logo.png" alt="Intervys">
+    <span>Intervys</span>
+  </div>
+  <p>© 2025 <a href="index.html">Cédric LEDUC</a></p>
+  <p><a href="mentions-legales.html" style="color:var(--muted);font-size:.68rem">Mentions légales</a></p>
+</footer>
+
+</body>
+</html>
+

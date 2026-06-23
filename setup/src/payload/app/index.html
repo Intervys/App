@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intervys</title>
+  <meta name="description" content="Intervys – Suivez vos interventions et communiquez avec votre technicien.">
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="icon" type="image/png" href="img/logo.png">
+  <link rel="apple-touch-icon" href="img/logo.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <div id="app">
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem">
+      <img src="img/logo.png" style="height:80px;filter:drop-shadow(0 0 20px rgba(99,102,241,.5));animation:pulse2 2s infinite" alt="Intervys">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.5rem;color:#6366f1;letter-spacing:.06em">Intervys</div>
+      <div style="border:3px solid rgba(99,102,241,.2);border-top:3px solid #6366f1;border-radius:50%;width:32px;height:32px;animation:spin .8s linear infinite"></div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes pulse2{0%,100%{filter:drop-shadow(0 0 20px rgba(99,102,241,.5))}50%{filter:drop-shadow(0 0 40px rgba(99,102,241,.8))}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/facturx.js"></script>
+  <script src="js/billing.js"></script>
+  <script src="js/client.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

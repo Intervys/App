@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon site</title>
+<meta name="description" content="Site vitrine">
+<link rel="icon" type="image/png" href="img/Intervys-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --primary:#1e90ff; --primary-dark:#0b6fd4; --accent:#0f172a;
+    --bg:#0a0e1a; --bg2:#111827; --surface:#0f1626; --text:#e8eef7; --muted:#9fb0c9;
+    --hero-from:#0b1220; --hero-to:#13233f; --radius:16px;
+    --f-head:'Rajdhani',sans-serif; --f-body:'Barlow',system-ui,sans-serif;
+  }
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:var(--f-body);line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:var(--f-head);line-height:1.15;font-weight:700}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 1.5rem}
+  .btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--primary);color:#fff;
+    padding:.85rem 1.6rem;border-radius:100px;font-weight:600;font-family:var(--f-head);
+    letter-spacing:.02em;border:none;cursor:pointer;transition:.25s;font-size:1rem}
+  .btn:hover{background:var(--primary-dark);transform:translateY(-2px);box-shadow:0 10px 30px -8px var(--primary)}
+  .btn-ghost{background:transparent;border:1.5px solid var(--primary);color:var(--primary)}
+  .btn-ghost:hover{background:var(--primary);color:#fff}
+
+  /* NAV */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+    background:color-mix(in srgb,var(--bg) 78%,transparent);border-bottom:1px solid color-mix(in srgb,var(--text) 10%,transparent)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:70px}
+  .brand{display:flex;align-items:center;gap:.6rem;font-family:var(--f-head);font-weight:700;font-size:1.35rem}
+  .brand .dot{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:1.2rem;
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));box-shadow:0 6px 18px -6px var(--primary)}
+  .navlinks{display:flex;align-items:center;gap:2rem;font-weight:500}
+  .navlinks a{color:var(--muted);transition:.2s;font-size:.97rem}
+  .navlinks a:hover{color:var(--text)}
+  .burger{display:none;background:none;border:none;color:var(--text);font-size:1.6rem;cursor:pointer}
+
+  /* HERO */
+  .hero{position:relative;overflow:hidden;background:
+     radial-gradient(1200px 500px at 80% -10%,color-mix(in srgb,var(--primary) 28%,transparent),transparent 60%),
+     linear-gradient(160deg,var(--hero-from),var(--hero-to))}
+  .hero .wrap{padding:6rem 1.5rem 7rem;display:grid;grid-template-columns:1.1fr .9fr;gap:3rem;align-items:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--f-head);font-weight:600;
+    letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;color:var(--primary);
+    background:color-mix(in srgb,var(--primary) 14%,transparent);padding:.4rem .9rem;border-radius:100px;margin-bottom:1.4rem}
+  .hero h1{font-size:clamp(2.4rem,5vw,3.9rem);margin-bottom:1.2rem}
+  .hero h1 em{font-style:normal;color:var(--primary)}
+  .hero p{font-size:1.18rem;color:var(--muted);max-width:34rem;margin-bottom:2rem}
+  .hero-cta{display:flex;gap:1rem;flex-wrap:wrap}
+  .hero-art{aspect-ratio:1;border-radius:30px;position:relative;display:grid;place-items:center;
+    background:linear-gradient(145deg,color-mix(in srgb,var(--primary) 22%,var(--surface)),var(--surface));
+    border:1px solid color-mix(in srgb,var(--text) 10%,transparent);box-shadow:0 30px 80px -30px var(--primary);overflow:hidden}
+  .hero-art .emoji{font-size:clamp(6rem,16vw,11rem);filter:drop-shadow(0 12px 30px rgba(0,0,0,.4))}
+  .hero-art .ring{position:absolute;inset:0;background:
+    repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--primary) 8%,transparent) 0deg 12deg,transparent 12deg 24deg);
+    opacity:.4;animation:spin 40s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .stats{display:flex;gap:2.5rem;margin-top:2.5rem;flex-wrap:wrap}
+  .stats div b{font-family:var(--f-head);font-size:1.7rem;color:var(--text);display:block}
+  .stats div span{color:var(--muted);font-size:.85rem}
+
+  /* SECTIONS */
+  section{padding:5.5rem 0}
+  .sec-head{text-align:center;max-width:42rem;margin:0 auto 3.2rem}
+  .sec-head .eyebrow{margin-bottom:1rem}
+  .sec-head h2{font-size:clamp(1.9rem,3.6vw,2.7rem);margin-bottom:.8rem}
+  .sec-head p{color:var(--muted);font-size:1.08rem}
+  #services{background:var(--bg2)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4rem}
+  .card{background:var(--surface);border:1px solid color-mix(in srgb,var(--text) 9%,transparent);
+    border-radius:var(--radius);padding:2rem 1.7rem;transition:.3s}
+  .card:hover{transform:translateY(-6px);border-color:color-mix(in srgb,var(--primary) 55%,transparent);
+    box-shadow:0 24px 50px -24px var(--primary)}
+  .card .ic{width:58px;height:58px;border-radius:15px;display:grid;place-items:center;font-size:1.7rem;margin-bottom:1.2rem;
+    background:color-mix(in srgb,var(--primary) 16%,transparent)}
+  .card h3{font-size:1.25rem;margin-bottom:.5rem}
+  .card p{color:var(--muted);font-size:.96rem}
+
+  /* GALLERY */
+  .gal{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+  .tile{aspect-ratio:1;border-radius:var(--radius);display:grid;place-items:center;position:relative;overflow:hidden;
+    background:linear-gradient(145deg,color-mix(in srgb,var(--primary) 20%,var(--surface)),var(--surface));
+    border:1px solid color-mix(in srgb,var(--text) 8%,transparent);transition:.3s}
+  .tile:hover{transform:scale(1.04)}
+  .tile .e{font-size:3.4rem;filter:drop-shadow(0 8px 16px rgba(0,0,0,.35))}
+  .tile span{position:absolute;bottom:.7rem;left:.8rem;font-size:.8rem;font-weight:600;color:var(--text);
+    background:color-mix(in srgb,var(--bg) 60%,transparent);padding:.2rem .6rem;border-radius:8px;backdrop-filter:blur(6px)}
+
+  /* ABOUT */
+  #about .wrap{display:grid;grid-template-columns:.85fr 1.15fr;gap:3.5rem;align-items:center}
+  .about-art{aspect-ratio:4/5;border-radius:24px;display:grid;place-items:center;font-size:8rem;
+    background:linear-gradient(160deg,color-mix(in srgb,var(--primary) 26%,var(--surface)),var(--surface));
+    border:1px solid color-mix(in srgb,var(--text) 10%,transparent)}
+  #about h2{font-size:clamp(1.8rem,3.4vw,2.5rem);margin-bottom:1.2rem}
+  #about p{color:var(--muted);margin-bottom:1rem;font-size:1.06rem}
+  .checks{list-style:none;margin-top:1.5rem;display:grid;gap:.7rem}
+  .checks li{display:flex;align-items:center;gap:.7rem;font-weight:500}
+  .checks li::before{content:'✓';display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
+    background:var(--primary);color:#fff;font-size:.8rem;flex:none}
+
+  /* CONTACT */
+  #contact{background:var(--bg2)}
+  .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start}
+  .info-item{display:flex;gap:1rem;align-items:center;margin-bottom:1.4rem}
+  .info-item .ic{width:50px;height:50px;border-radius:13px;display:grid;place-items:center;font-size:1.3rem;flex:none;
+    background:color-mix(in srgb,var(--primary) 16%,transparent)}
+  .info-item b{display:block;font-family:var(--f-head)}
+  .info-item span{color:var(--muted);font-size:.95rem}
+  form{display:grid;gap:1rem;background:var(--surface);padding:2rem;border-radius:var(--radius);
+    border:1px solid color-mix(in srgb,var(--text) 9%,transparent)}
+  input,textarea{width:100%;background:var(--bg);border:1px solid color-mix(in srgb,var(--text) 14%,transparent);
+    border-radius:11px;padding:.85rem 1rem;color:var(--text);font-family:inherit;font-size:.97rem}
+  input:focus,textarea:focus{outline:none;border-color:var(--primary)}
+  label{font-size:.82rem;color:var(--muted);font-weight:600;margin-bottom:-.4rem}
+
+  /* ACTUALITÉS */
+  #actu{background:var(--bg)}
+  .art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.4rem}
+  .art-card{background:var(--surface);border:1px solid color-mix(in srgb,var(--text) 9%,transparent);
+    border-radius:var(--radius);padding:1.75rem;transition:.3s;border-top:3px solid var(--primary)}
+  .art-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px -20px var(--primary)}
+  .art-meta{font-size:.75rem;color:var(--primary);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.6rem}
+  .art-title{font-size:1.15rem;margin-bottom:.6rem;line-height:1.3}
+  .art-body{color:var(--muted);font-size:.95rem;line-height:1.7}
+
+  /* FOOTER */
+  footer{padding:3rem 0;border-top:1px solid color-mix(in srgb,var(--text) 9%,transparent);text-align:center;color:var(--muted)}
+  footer .brand{justify-content:center;margin-bottom:1rem;color:var(--text)}
+
+  /* THEME BADGE (preview) */
+  .theme-badge{position:fixed;bottom:1rem;right:1rem;z-index:99;background:var(--surface);
+    border:1px solid color-mix(in srgb,var(--primary) 50%,transparent);border-radius:100px;
+    padding:.5rem 1rem;font-size:.82rem;font-weight:600;color:var(--primary);box-shadow:0 10px 30px -10px #000}
+
+  @media(max-width:900px){
+    .hero .wrap,#about .wrap,.contact-grid{grid-template-columns:1fr}
+    .hero-art{max-width:380px;margin:0 auto;order:-1}
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .gal{grid-template-columns:repeat(2,1fr)}
+    .navlinks{position:fixed;inset:70px 0 auto 0;flex-direction:column;background:var(--bg2);padding:1.5rem;
+      gap:1.2rem;transform:translateY(-150%);transition:.3s;border-bottom:1px solid color-mix(in srgb,var(--text) 10%,transparent)}
+    .navlinks.open{transform:translateY(0)}
+    .burger{display:block}
+  }
+  @media(max-width:560px){.grid,.gal{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  DÉFINITION DES THÈMES MÉTIER
+// ════════════════════════════════════════════════════════════
+const THEMES = {
+  default: {
+    label:'Tech', emoji:'💻',
+    font:{ head:'Rajdhani', body:'Barlow', param:'Rajdhani:wght@500;600;700&family=Barlow:wght@300;400;500;600' },
+    vars:{ '--primary':'#1e90ff','--primary-dark':'#0b6fd4','--bg':'#0a0e1a','--bg2':'#0d1424',
+           '--surface':'#0f1626','--text':'#e8eef7','--muted':'#9fb0c9','--hero-from':'#0b1220','--hero-to':'#13233f' },
+    name:'Mon Activité', tagline:'Votre service professionnel de confiance',
+    heroEyebrow:'Votre expert local', heroTitle:'À votre service,<br><em>quand vous en avez besoin</em>',
+    heroSub:'Devis gratuit, intervention rapide, travail soigné. Contactez-nous pour toute demande.',
+    cta:'Demander un devis', cta2:'Nos services',
+    stats:[['+100','interventions'],['48h','délai moyen'],['5★','satisfaction']],
+    servicesTitle:'Nos services', servicesSub:'Des prestations de qualité pour particuliers et professionnels.',
+    services:[
+      ['🛠️','Prestation 1','Description de votre première prestation phare.'],
+      ['🔧','Prestation 2','Description de votre deuxième prestation.'],
+      ['📋','Devis gratuit','Estimation gratuite et sans engagement sous 24h.'],
+      ['✅','Garantie','Travaux garantis, matériaux de qualité.'],
+      ['📞','Urgences','Disponible rapidement pour vos demandes urgentes.'],
+      ['🤝','Conseil','Accompagnement personnalisé tout au long du projet.'],
+    ],
+    galTitle:'Nos réalisations', gallery:[['🔨','Réalisation 1'],['📐','Réalisation 2'],['🏗️','Chantier'],['✨','Finitions']],
+    aboutEmoji:'🤝', aboutTitle:'Un artisan de confiance',
+    about:'Professionnel qualifié, j\'interviens rapidement avec du matériel de qualité. Devis gratuit, tarifs transparents, travail soigné.',
+    checks:['Devis gratuit','Intervention rapide','Matériaux garantis','Conseils personnalisés'],
+    zone:'Votre région', phone:'00 00 00 00 00', email:'contact@monactivite.fr',
+  },
+
+  plomberie: {
+    label:'Plombier', emoji:'🔧',
+    font:{ head:'Oswald', body:'Open Sans', param:'Oswald:wght@500;600;700&family=Open+Sans:wght@300;400;500;600' },
+    vars:{ '--primary':'#1a6ea8','--primary-dark':'#125285','--bg':'#f0f6fd','--bg2':'#deeaf8',
+           '--surface':'#ffffff','--text':'#0e2337','--muted':'#5b7a96','--hero-from':'#e0edf8','--hero-to':'#c8dff3' },
+    name:'Plomberie Pro', tagline:'Dépannage & installation plomberie',
+    heroEyebrow:'Plombier · Chauffagiste', heroTitle:'Votre plombier,<br><em>disponible 7j/7</em>',
+    heroSub:'Fuite, débouchage, chauffe-eau, salle de bain. Intervention rapide chez vous, devis gratuit.',
+    cta:'Demander un devis', cta2:'Nos services',
+    stats:[['+300','chantiers'],['1h','délai intervention'],['10','ans d\'expérience']],
+    servicesTitle:'Nos services', servicesSub:'Tous travaux de plomberie, du dépannage à la rénovation complète.',
+    services:[
+      ['🚿','Salle de bain','Conception, pose et rénovation complète de salles de bain.'],
+      ['🔩','Dépannage fuite','Détection et réparation de fuites, intervention d\'urgence.'],
+      ['🚽','Sanitaires','Remplacement et installation de WC, lavabos, robinetterie.'],
+      ['🔥','Chauffe-eau','Pose et entretien de chauffe-eau, thermodynamiques, solaires.'],
+      ['♨️','Chauffage','Installation chaudière, radiateurs, plancher chauffant.'],
+      ['🏗️','Débouchage','Débouchage canalisations, regards, évacuations colmatées.'],
+    ],
+    galTitle:'Nos chantiers', gallery:[['🛁','Salle de bain'],['🔥','Chauffe-eau'],['🚿','Douche italienne'],['🔩','Dépannage']],
+    aboutEmoji:'🔧', aboutTitle:'L\'expertise au service de votre confort',
+    about:'Artisan plombier qualifié RGE, j\'interviens rapidement pour tous vos travaux de plomberie et chauffage. Travail soigné, matériaux de qualité, garantie décennale.',
+    checks:['Devis gratuit sous 24h','Garantie décennale','Artisan certifié RGE','Urgences 7j/7'],
+    zone:'Département & communes limitrophes', phone:'06 00 00 00 00', email:'contact@plomberie-pro.fr',
+  },
+
+  menuiserie: {
+    label:'Menuisier', emoji:'🪵',
+    font:{ head:'Libre Baskerville', body:'Source Sans 3', param:'Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@300;400;600;700' },
+    vars:{ '--primary':'#7a4f2d','--primary-dark':'#5e3a1e','--bg':'#fdf8f3','--bg2':'#f4ead8',
+           '--surface':'#ffffff','--text':'#2a1a0e','--muted':'#8a7260','--hero-from':'#f5e9d6','--hero-to':'#e8d4b8' },
+    name:'Menuiserie Artisanale', tagline:'Bois · Portes · Fenêtres · Agencement',
+    heroEyebrow:'Menuisier · Ébéniste', heroTitle:'L\'art du bois,<br><em>sur-mesure</em>',
+    heroSub:'Escaliers, cuisines, dressings, fenêtres. Des créations en bois massif taillées selon vos envies.',
+    cta:'Demander un devis', cta2:'Nos réalisations',
+    stats:[['+150','projets réalisés'],['20','ans d\'expérience'],['100%','sur-mesure']],
+    servicesTitle:'Nos prestations', servicesSub:'Du bois brut à la pièce finie, chaque création est unique.',
+    services:[
+      ['🚪','Portes & Fenêtres','Pose et fabrication de menuiseries intérieures et extérieures.'],
+      ['🛋️','Dressing & Placards','Agencement sur-mesure adapté à vos espaces.'],
+      ['🪜','Escaliers','Escaliers droits, hélicoïdaux, en bois massif ou mixte.'],
+      ['🍽️','Cuisine','Conception et installation de cuisines en bois massif.'],
+      ['🪑','Mobilier','Meubles et tables créés à la main dans notre atelier.'],
+      ['🏠','Bardage & Terrasse','Habillage extérieur bois, terrasses et lames de sol.'],
+    ],
+    galTitle:'Nos réalisations', gallery:[['🚪','Porte d\'entrée'],['🪜','Escalier chêne'],['🛋️','Dressing noyer'],['🍽️','Cuisine bois']],
+    aboutEmoji:'🪵', aboutTitle:'L\'amour du bois depuis trois générations',
+    about:'Compagnon du tour de France, j\'ai appris mon métier sur les plus beaux chantiers de France. Chaque pièce est travaillée à la main, dans le respect des essences et des traditions.',
+    checks:['Atelier propre','Bois certifié PEFC','Fabrication française','Garantie 2 ans pièces & main-d\'œuvre'],
+    zone:'Atelier & déplacements 50 km', phone:'06 00 11 11 11', email:'contact@menuiserie-artisanale.fr',
+  },
+
+  mecanique: {
+    label:'Garagiste', emoji:'🔩',
+    font:{ head:'Exo 2', body:'Roboto', param:'Exo+2:wght@500;600;700;800&family=Roboto:wght@300;400;500;700' },
+    vars:{ '--primary':'#e85d04','--primary-dark':'#c44c00','--bg':'#0d0f14','--bg2':'#13161f',
+           '--surface':'#1a1d27','--text':'#e8e9ec','--muted':'#8a8fa0','--hero-from':'#100e08','--hero-to':'#1c1200' },
+    name:'Garage Auto Pro', tagline:'Mécanique · Carrosserie · Entretien',
+    heroEyebrow:'Votre garagiste de confiance', heroTitle:'Votre véhicule,<br><em>entre de bonnes mains</em>',
+    heroSub:'Révision, freins, embrayage, carrosserie. Un garage indépendant toutes marques avec des techniciens qualifiés.',
+    cta:'Prendre rendez-vous', cta2:'Nos services',
+    stats:[['+1000','véhicules réparés'],['15','ans d\'expérience'],['Toutes','marques']],
+    servicesTitle:'Nos services', servicesSub:'Mécanique générale et carrosserie pour tous types de véhicules.',
+    services:[
+      ['🚗','Révision','Vidange, filtres, bougies. Entretien constructeur toutes marques.'],
+      ['🛑','Freinage','Disques, plaquettes, liquide de frein. Sécurité garantie.'],
+      ['⚙️','Embrayage & Boîte','Remplacement embrayage, diagnostics boîte de vitesses.'],
+      ['🔋','Électronique','Diagnostic OBD, remplacement batterie, alternateur, démarreur.'],
+      ['🎨','Carrosserie','Réparation chocs, débosselage, peinture teintée à l\'identique.'],
+      ['❄️','Climatisation','Recharge gaz, test d\'étanchéité, remplacement compresseur.'],
+    ],
+    galTitle:'Nos travaux', gallery:[['🚗','Révision complète'],['🎨','Peinture'],['⚙️','Moteur'],['🛑','Freinage']],
+    aboutEmoji:'🏁', aboutTitle:'La mécanique, notre passion',
+    about:'Garage indépendant, nous refusons les pratiques abusives. Diagnostic honnête, pièces d\'origine ou équivalent, tarif juste. Votre confiance est notre meilleure publicité.',
+    checks:['Diagnostic gratuit','Pièces garanties','Toutes marques','Devis avant intervention'],
+    zone:'Atelier · Navette possible', phone:'02 00 22 22 22', email:'contact@garage-auto-pro.fr',
+  },
+
+  electricien: {
+    label:'Électricien', emoji:'⚡',
+    font:{ head:'Barlow Condensed', body:'Barlow', param:'Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@300;400;500;600' },
+    vars:{ '--primary':'#f59e0b','--primary-dark':'#d97706','--bg':'#0a0b08','--bg2':'#111209',
+           '--surface':'#161710','--text':'#f0f0e8','--muted':'#8a8a70','--hero-from':'#0e0f08','--hero-to':'#1a1a00' },
+    name:'Électricité Générale', tagline:'Installation · Dépannage · Mise aux normes',
+    heroEyebrow:'Électricien certifié Qualifelec', heroTitle:'L\'électricité,<br><em>en toute sécurité</em>',
+    heroSub:'Installation, mise aux normes, domotique. Un électricien qualifié pour votre maison et vos locaux professionnels.',
+    cta:'Demander un devis', cta2:'Nos services',
+    stats:[['+400','installations'],['NF C 15-100','conforme'],['RGE','certifié']],
+    servicesTitle:'Nos services', servicesSub:'Travaux électriques résidentiels et tertiaires, du simple dépannage à la rénovation complète.',
+    services:[
+      ['🏠','Installation neuf','Tableau électrique, circuits, prises, éclairage. Norme NF C 15-100.'],
+      ['⚠️','Mise aux normes','Diagnostic électrique, mise en conformité, rapport Consuel.'],
+      ['💡','Éclairage','LED, spots encastrés, éclairage extérieur, variation de lumière.'],
+      ['🔌','Prises & câblage','Extension de circuits, câblage réseau, gaines sous-sol.'],
+      ['🏠','Domotique','Volets roulants, alarme, interphone, maison connectée.'],
+      ['⚡','Borne de recharge','Installation IRVE pour véhicule électrique, certification ADVENIR.'],
+    ],
+    galTitle:'Nos chantiers', gallery:[['⚡','Tableau neuf'],['💡','Éclairage LED'],['🔌','Borne VE'],['🏠','Rénovation']],
+    aboutEmoji:'⚡', aboutTitle:'La sécurité avant tout',
+    about:'Électricien indépendant certifié Qualifelec, j\'interviens en neuf et en rénovation pour les particuliers et les professionnels. Travaux propres, dans les règles de l\'art.',
+    checks:['Certifié Qualifelec','Conformité Consuel','Devis gratuit','Urgences traitées rapidement'],
+    zone:'Département entier · Pros & particuliers', phone:'06 00 33 33 33', email:'contact@electricite-generale.fr',
+  },
+
+  decorateur: {
+    label:'Décorateur / Événements', emoji:'🎉',
+    font:{ head:'Cormorant Garamond', body:'Raleway', param:'Cormorant+Garamond:wght@400;500;600;700&family=Raleway:wght@300;400;500;600' },
+    vars:{ '--primary':'#b8902a','--primary-dark':'#9a7420','--bg':'#fdfaf4','--bg2':'#f6edd8',
+           '--surface':'#ffffff','--text':'#2a1f0a','--muted':'#8a7850','--hero-from':'#f9f0de','--hero-to':'#f0e0be' },
+    name:'Événements & Déco', tagline:'Mariages · Anniversaires · Fêtes',
+    heroEyebrow:'Décorateur · Organisateur d\'événements', heroTitle:'Des fêtes qui<br><em>resteront gravées</em>',
+    heroSub:'Mariage, anniversaire, baptême, fête d\'entreprise. De la décoration à la coordination complète, faites confiance à notre créativité.',
+    cta:'Nous contacter', cta2:'Nos réalisations',
+    stats:[['+200','événements'],['100%','personnalisés'],['5★','avis clients']],
+    servicesTitle:'Nos prestations', servicesSub:'Chaque événement est unique, chaque décoration est une œuvre.',
+    services:[
+      ['💍','Mariage','Décoration de salle, arche florale, table d\'honneur, mise en scène complète.'],
+      ['🎂','Anniversaire','Décoration de gâteau, arche ballons, thème sur-mesure, photobooth.'],
+      ['🎀','Baptême & Baby shower','Mise en scène douce et élégante pour accueillir les petits nouveaux.'],
+      ['🎆','Fête & Réception','Scénographie lumineuse, mobilier événementiel, animations.'],
+      ['💐','Floral & Végétal','Compositions florales fraîches, arches de fleurs, centres de table.'],
+      ['🏢','Événement pro','Team building, séminaire, inauguration. Coordination de A à Z.'],
+    ],
+    galTitle:'Nos créations', gallery:[['💍','Mariage bohème'],['🎂','Anniversaire 30 ans'],['💐','Arche florale'],['🎆','Soirée gala']],
+    aboutEmoji:'✨', aboutTitle:'Votre vision, notre passion',
+    about:'Décoratrice et organisatrice d\'événements depuis 10 ans, je transforme vos rêves en réalité. Chaque fête est une création unique, pensée dans les moindres détails pour vous émouvoir.',
+    checks:['Rencontre gratuite','100% sur-mesure','Réseau de prestataires','Coordination le jour J'],
+    zone:'Bretagne & Loire-Atlantique · Déplacements possibles', phone:'06 00 44 44 44', email:'contact@evenements-deco.fr',
+  },
+
+  jardinier: {
+    label:'Jardinier', emoji:'🌿',
+    font:{ head:'Fraunces', body:'Nunito', param:'Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito:wght@300;400;600;700' },
+    vars:{ '--primary':'#5a8a3c','--primary-dark':'#456b2d','--bg':'#f5f8f0','--bg2':'#e9f0df',
+           '--surface':'#ffffff','--text':'#23311a','--muted':'#6f7d62','--hero-from':'#eaf3df','--hero-to':'#d3e6bf' },
+    name:'Jardins & Paysages', tagline:'Création & entretien d\'espaces verts',
+    heroEyebrow:'Paysagiste · Jardinier', heroTitle:'Votre extérieur,<br><em>notre passion</em>',
+    heroSub:'Création de jardins, entretien, élagage. Nous donnons vie à vos espaces verts, en harmonie avec la nature.',
+    cta:'Demander un devis', cta2:'Nos prestations',
+    stats:[['+200','jardins entretenus'],['10','ans d\'expérience'],['100%','éco-responsable']],
+    servicesTitle:'Nos prestations', servicesSub:'De la tonte à la création complète, tout pour votre jardin.',
+    services:[
+      ['🌱','Tonte & Entretien','Entretien régulier de pelouses, massifs et espaces verts.'],
+      ['🌸','Création de massifs','Conception et plantation de massifs fleuris sur-mesure.'],
+      ['🪚','Élagage & Abattage','Taille en hauteur et abattage sécurisé de vos arbres.'],
+      ['🌳','Taille de haies','Tailles nettes et formes maîtrisées pour vos haies.'],
+      ['🥕','Potager','Installation et entretien de potagers productifs.'],
+      ['💧','Arrosage auto','Systèmes d\'arrosage économes et programmables.'],
+    ],
+    galTitle:'Nos réalisations', gallery:[['🌻','Massif fleuri'],['🌳','Élagage'],['🪴','Terrasse végétale'],['🥬','Potager bio']],
+    aboutEmoji:'🌿', aboutTitle:'Au plus près de la nature',
+    about:'Artisans paysagistes passionnés, nous concevons et entretenons vos espaces verts dans le respect du vivant. Des solutions durables, pensées pour durer au fil des saisons.',
+    checks:['Devis gratuit','Matériel professionnel','Approche éco-responsable','Contrats d\'entretien annuels'],
+    zone:'Rayon 30 km · Particuliers & pros', phone:'02 99 11 11 11', email:'contact@jardins-paysages.fr',
+  },
+};
+
+// ── Résolution du thème : ?theme= puis settings PocketBase puis défaut ──
+const PB_DEFAULT = location.origin.replace('://www.', '://').replace('://', '://app.');
+
+async function resolveConfig() {
+  const params = new URLSearchParams(location.search);
+  let themeKey = params.get('theme');
+  const overrides = {};
+
+  // Si pas de thème forcé dans l'URL → lire les settings publics de PocketBase
+  if (!themeKey) {
+    try {
+      const base = (params.get('api') || PB_DEFAULT).replace(/\/$/, '');
+      const keys = ['hg_site_theme','site_name','site_tagline','site_desc','site_phone','site_email','site_zone',
+                    'site_about','site_hero_eyebrow','site_hero_title','site_hero_sub','site_cta','site_cta2',
+                    'site_stats','site_services','site_gallery','site_about_emoji','site_about_title',
+                    'site_about_text','site_checks','site_articles'];
+      const filter = keys.map(k => "key='" + k + "'").join(' || ');
+      const r = await fetch(base + '/api/collections/settings/records?perPage=50&filter=' + encodeURIComponent(filter));
+      if (r.ok) {
+        const data = await r.json();
+        const map = {};
+        (data.items || []).forEach(it => map[it.key] = it.value);
+        themeKey = map['hg_site_theme'] || 'default';
+        if (map['site_name'])         overrides.name        = map['site_name'];
+        if (map['site_tagline'])       overrides.tagline     = map['site_tagline'];
+        if (map['site_desc'])          overrides.heroSub     = map['site_desc'];
+        if (map['site_hero_sub'])      overrides.heroSub     = map['site_hero_sub'];
+        if (map['site_hero_eyebrow'])  overrides.heroEyebrow = map['site_hero_eyebrow'];
+        if (map['site_hero_title'])    overrides.heroTitle   = map['site_hero_title'];
+        if (map['site_cta'])           overrides.cta         = map['site_cta'];
+        if (map['site_cta2'])          overrides.cta2        = map['site_cta2'];
+        if (map['site_phone'])         overrides.phone       = map['site_phone'];
+        if (map['site_email'])         overrides.email       = map['site_email'];
+        if (map['site_zone'])          overrides.zone        = map['site_zone'];
+        if (map['site_about_text'])    overrides.about       = map['site_about_text'];
+        else if (map['site_about'])    overrides.about       = map['site_about'];
+        if (map['site_about_title'])   overrides.aboutTitle  = map['site_about_title'];
+        if (map['site_about_emoji'])   overrides.aboutEmoji  = map['site_about_emoji'];
+        try { if (map['site_stats'])    overrides.stats    = JSON.parse(map['site_stats']); } catch{}
+        try { if (map['site_services']) overrides.services = JSON.parse(map['site_services']); } catch{}
+        try { if (map['site_gallery'])  overrides.gallery  = JSON.parse(map['site_gallery']); } catch{}
+        try { if (map['site_checks'])   overrides.checks   = JSON.parse(map['site_checks']); } catch{}
+        try { if (map['site_articles']) overrides.articles = JSON.parse(map['site_articles']); } catch{}
+      }
+    } catch(e) { /* offline / CORS → défaut */ }
+  }
+
+  const t = THEMES[themeKey] || THEMES.default;
+  return { key: THEMES[themeKey] ? themeKey : 'default', t: Object.assign({}, t, overrides), preview: !!params.get('theme') };
+}
+
+function applyTheme(t) {
+  for (const [k,v] of Object.entries(t.vars)) document.documentElement.style.setProperty(k, v);
+  document.documentElement.style.setProperty('--f-head', "'" + t.font.head + "',serif");
+  document.documentElement.style.setProperty('--f-body', "'" + t.font.body + "',system-ui,sans-serif");
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=' + t.font.param + '&display=swap';
+  document.head.appendChild(link);
+  document.title = t.name + ' — ' + t.tagline;
+}
+
+function render(cfg) {
+  const t = cfg.t;
+  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.endsWith('.localhost');
+  const appUrl = isLocal ? `http://localhost:${location.port || 80}/app` : PB_DEFAULT.replace('://pb.', '://app.');
+  const svc    = t.services.map(s => `
+    <div class="card"><div class="ic">${s[0]}</div><h3>${s[1]}</h3><p>${s[2]}</p></div>`).join('');
+  const gal    = t.gallery.map(g => `
+    <div class="tile"><div class="e">${g[0]}</div><span>${g[1]}</span></div>`).join('');
+  const checks = t.checks.map(c => `<li>${c}</li>`).join('');
+  const stats  = t.stats.map(s => `<div><b>${s[0]}</b><span>${s[1]}</span></div>`).join('');
+  const arts   = t.articles || [];
+  const artHtml = arts.length ? arts.map(a => `
+    <article class="art-card">
+      <div class="art-meta">${a.date ? new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}) : ''}</div>
+      <h3 class="art-title">${a.title||''}</h3>
+      <p class="art-body">${(a.content||'').replace(/\n/g,'<br>')}</p>
+    </article>`).join('') : '';
+
+  document.getElementById('root').innerHTML = `
+  <nav><div class="wrap">
+    <a class="brand" href="#top"><span class="dot">${t.emoji}</span>${t.name}</a>
+    <div class="navlinks" id="nav">
+      <a href="#services">Prestations</a>
+      <a href="#gallery">Réalisations</a>
+      <a href="#about">À propos</a>
+      ${arts.length ? '<a href="#actu">Actualités</a>' : ''}
+      <a href="#contact">Contact</a>
+      <a class="btn btn-ghost" href="${appUrl}/#/login" target="_blank" rel="noopener">Espace client</a>
+    </div>
+    <button class="burger" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  </div></nav>
+
+  <header class="hero" id="top"><div class="wrap">
+    <div>
+      <span class="eyebrow">${t.heroEyebrow}</span>
+      <h1>${t.heroTitle}</h1>
+      <p>${t.heroSub}</p>
+      <div class="hero-cta">
+        <a class="btn" href="#contact">${t.cta}</a>
+        <a class="btn btn-ghost" href="#services">${t.cta2}</a>
+      </div>
+      <div class="stats">${stats}</div>
+    </div>
+    <div class="hero-art"><div class="ring"></div><div class="emoji">${t.emoji}</div></div>
+  </div></header>
+
+  <section id="services"><div class="wrap">
+    <div class="sec-head"><span class="eyebrow">${t.servicesTitle}</span><h2>${t.servicesTitle}</h2><p>${t.servicesSub}</p></div>
+    <div class="grid">${svc}</div>
+  </div></section>
+
+  <section id="gallery"><div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Galerie</span><h2>${t.galTitle}</h2><p>Un aperçu de notre travail au quotidien.</p></div>
+    <div class="gal">${gal}</div>
+  </div></section>
+
+  <section id="about"><div class="wrap">
+    <div class="about-art">${t.aboutEmoji}</div>
+    <div>
+      <span class="eyebrow">À propos</span>
+      <h2>${t.aboutTitle}</h2>
+      <p>${t.about}</p>
+      <ul class="checks">${checks}</ul>
+    </div>
+  </div></section>
+
+  ${arts.length ? `<section id="actu"><div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Actualités</span><h2>Nos dernières nouvelles</h2><p>Suivez nos actualités, conseils et annonces.</p></div>
+    <div class="art-grid">${artHtml}</div>
+  </div></section>` : ''}
+
+  <section id="contact"><div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Contact</span><h2>Parlons de votre projet</h2><p>Contactez-nous, réponse sous 24h.</p></div>
+    <div class="contact-grid">
+      <div>
+        <div class="info-item"><div class="ic">📞</div><div><b>Téléphone</b><span>${t.phone}</span></div></div>
+        <div class="info-item"><div class="ic">✉️</div><div><b>Email</b><span>${t.email}</span></div></div>
+        <div class="info-item"><div class="ic">📍</div><div><b>Zone</b><span>${t.zone}</span></div></div>
+      </div>
+      <form onsubmit="event.preventDefault();this.style.display='none';this.nextElementSibling.style.display='block'">
+        <div><label>Nom</label><input required placeholder="Votre nom"></div>
+        <div><label>Email</label><input type="email" required placeholder="vous@email.fr"></div>
+        <div><label>Message</label><textarea rows="4" required placeholder="Votre demande…"></textarea></div>
+        <button class="btn" type="submit">Envoyer le message</button>
+      </form>
+      <div style="display:none;background:var(--surface);padding:2rem;border-radius:var(--radius);text-align:center">
+        <div style="font-size:2.5rem">✅</div><h3 style="margin:.5rem 0">Message envoyé !</h3>
+        <p style="color:var(--muted)">Merci, nous vous recontactons rapidement.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <footer><div class="wrap">
+    <div class="brand"><span class="dot">${t.emoji}</span>${t.name}</div>
+    <p>${t.tagline} · © ${new Date().getFullYear()} ${t.name}</p>
+    <p style="margin-top:.5rem;font-size:.82rem;opacity:.7">Site propulsé par Intervys</p>
+  </div></footer>
+
+  ${cfg.preview ? `<div class="theme-badge">🎨 Aperçu : thème « ${t.label} »</div>` : ''}`;
+
+  document.querySelectorAll('#nav a').forEach(a => a.addEventListener('click', () => document.getElementById('nav').classList.remove('open')));
+}
+
+(async function(){
+  const cfg = await resolveConfig();
+  applyTheme(cfg.t);
+  render(cfg);
+})();
+</script>
+</body>
+</html>

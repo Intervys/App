@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intervys — Logiciel de gestion pour artisans</title>
+  <meta name="description" content="Intervys est un logiciel open-source de gestion d'interventions pour techniciens. Suivi des réparations, espace client, facturation — tout en local.">
+  <link rel="icon" type="image/png" href="img/Intervys-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Intervys nav -->
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Intervys landing (styles autonomes, ne conflictent pas avec HG) -->
+  <link rel="stylesheet" href="css/Intervys.css">
+</head>
+<body>
+
+<!-- ── Intervys NAV ── -->
+<nav class="iv-nav">
+  <a class="iv-nav-brand" href="Intervys.html">
+    <img src="img/Intervys-logo.png" alt="Intervys" style="height:36px;width:36px;object-fit:contain">
+    <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:1.1rem;letter-spacing:-.01em"><span style="color:#fff">Inter</span><span style="color:#1e90ff">vio</span></span>
+  </a>
+  <ul class="iv-nav-links" id="iv-nav-links">
+    <li><a href="#features">Fonctionnalités</a></li>
+    <li><a href="#how">Comment ça marche</a></li>
+    <li><a href="#demos">Démo</a></li>
+    <li><a href="#open-source">Open-source</a></li>
+    <li><a href="#download">Télécharger</a></li>
+  </ul>
+  <div style="display:flex;align-items:center;gap:.75rem">
+    <a class="coffee-btn" href="https://www.buymeacoffee.com/Intervys" target="_blank" rel="noopener" title="Offrir un café au dev">☕ Café</a>
+    <a class="iv-nav-cta" href="#download">Télécharger</a>
+    <button class="iv-nav-burger" onclick="document.getElementById('iv-nav-links').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     Intervys LANDING PAGE (contenu complet)
+     ══════════════════════════════════════════ -->
+<div class="iv-page">
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="container">
+    <div class="badge-top">✦ Open-source &amp; gratuit</div>
+    <h1 class="hero-title">
+      Gérez vos interventions<br>
+      <span class="gradient-text">comme un pro</span>
+    </h1>
+    <p class="hero-sub">
+      Intervys est un logiciel de gestion d'interventions conçu pour les techniciens indépendants et les petits ateliers. Suivi des réparations, espace client dédié, devis et factures — tout fonctionne en local sur votre machine.
+    </p>
+    <div class="hero-actions">
+      <a href="#download" class="btn-primary-lg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Télécharger gratuitement
+      </a>
+      <a href="#features" class="btn-ghost-lg">Voir les fonctionnalités →</a>
+    </div>
+    <div class="hero-meta">
+      <span>🔒 Données 100% locales</span>
+      <span>⚡ Installation en 2 minutes</span>
+      <span>🖥️ Windows · 🐳 Docker</span>
+    </div>
+
+    <!-- App mockup -->
+    <div class="hero-mockup">
+      <div class="mockup-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="mockup-url">localhost:8090</span>
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-sidebar">
+          <div class="mock-logo">
+            <img src="img/Intervys-logo.png" alt="">
+            <span><span style="color:#fff">Inter</span><span style="color:#1e90ff">vio</span></span>
+          </div>
+          <div class="mock-nav-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Dashboard
+          </div>
+          <div class="mock-nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            Interventions
+          </div>
+          <div class="mock-nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Clients
+          </div>
+          <div class="mock-nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Devis
+          </div>
+          <div class="mock-nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Factures
+          </div>
+        </div>
+        <div class="mockup-content">
+          <div class="mock-topbar">
+            <span class="mock-title">Dashboard</span>
+            <div class="mock-search"></div>
+          </div>
+          <div class="mock-stats">
+            <div class="mock-stat"><div class="mock-stat-num">12</div><div class="mock-stat-label">Total</div></div>
+            <div class="mock-stat danger"><div class="mock-stat-num">3</div><div class="mock-stat-label">Nouvelles</div></div>
+            <div class="mock-stat warn"><div class="mock-stat-num">5</div><div class="mock-stat-label">En cours</div></div>
+            <div class="mock-stat ok"><div class="mock-stat-num">4</div><div class="mock-stat-label">Terminées</div></div>
+          </div>
+          <div class="mock-list">
+            <div class="mock-row">
+              <span class="mock-badge new">Nouvelle</span>
+              <span class="mock-name">MacBook Pro — écran cassé</span>
+              <span class="mock-date">Il y a 2h</span>
+            </div>
+            <div class="mock-row">
+              <span class="mock-badge wip">En cours</span>
+              <span class="mock-name">PC gaming — carte graphique</span>
+              <span class="mock-date">Hier</span>
+            </div>
+            <div class="mock-row">
+              <span class="mock-badge done">Terminée</span>
+              <span class="mock-name">iPhone 14 — batterie</span>
+              <span class="mock-date">Lun.</span>
+            </div>
+            <div class="mock-row">
+              <span class="mock-badge wait">Attente pièce</span>
+              <span class="mock-name">Imprimante 3D — extrudeur</span>
+              <span class="mock-date">Ven.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ── -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-label">Fonctionnalités</div>
+    <h2 class="section-title">Tout ce dont vous avez besoin,<br>rien de superflu</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <h3>Suivi des interventions</h3>
+        <p>Créez et suivez chaque réparation de A à Z. Statuts personnalisables, notes techniques, priorités, photos — tout est centralisé dans une interface claire.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Espace client</h3>
+        <p>Chaque client accède à son espace personnel pour suivre l'avancement de sa réparation, consulter les devis et communiquer avec vous directement.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <h3>Devis &amp; Factures</h3>
+        <p>Générez des devis et factures professionnels en PDF. Compatible Factur-X (norme européenne). Envoi par email en un clic depuis l'interface.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>Messagerie intégrée</h3>
+        <p>Communiquez directement avec vos clients depuis l'interface. Historique complet des échanges, notifications en temps réel côté client et admin.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </div>
+        <h3>Catalogue de services</h3>
+        <p>Créez votre catalogue de prestations avec tarifs. Ajoutez des articles aux devis en quelques clics depuis votre bibliothèque personnalisée.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <h3>Site web inclus</h3>
+        <p>Intervys génère automatiquement votre site vitrine personnalisable. Modifiez nom, slogan, couleurs et coordonnées depuis l'admin — le site se met à jour instantanément.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>100% local &amp; privé</h3>
+        <p>Toutes vos données restent sur votre machine. Aucun cloud, aucun abonnement, aucune dépendance externe. Vous êtes propriétaire de vos données.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURE DETAIL: INTERVENTIONS ── -->
+<section class="feature-detail alt">
+  <div class="container fd-row">
+    <div class="fd-text">
+      <div class="section-label">Interventions</div>
+      <h2>Un suivi précis de chaque réparation</h2>
+      <ul class="fd-list">
+        <li><span class="fd-icon">✓</span><div><strong>Statuts complets</strong> — Nouvelle, En cours, Attente de pièce, Terminée, Rendu client</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Notes techniques</strong> — Documentez chaque étape de la réparation</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Pièces &amp; colis</strong> — Suivez les commandes de pièces détachées associées</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Lien client unique</strong> — Partagez un lien sécurisé pour que le client suive sa réparation</div></li>
+      </ul>
+    </div>
+    <div class="fd-visual">
+      <div class="screen-mock intervention-mock">
+        <div class="sm-header">
+          <span class="sm-title">Intervention #042</span>
+          <span class="badge-wip">En cours</span>
+        </div>
+        <div class="sm-body">
+          <div class="sm-field"><span class="sm-label">Appareil</span><span class="sm-val">MacBook Pro 14" (2021)</span></div>
+          <div class="sm-field"><span class="sm-label">Problème</span><span class="sm-val">Écran fissuré, rétroéclairage HS</span></div>
+          <div class="sm-field"><span class="sm-label">Client</span><span class="sm-val">Martin Dupont</span></div>
+          <div class="sm-field"><span class="sm-label">Prise en charge</span><span class="sm-val">14 juin 2025</span></div>
+          <div class="sm-divider"></div>
+          <div class="sm-notes-label">Notes techniques</div>
+          <div class="sm-note">✓ Démontage effectué — dalle LCD endommagée confirmée</div>
+          <div class="sm-note">⏳ Commande pièce en cours (ref. 661-19878)</div>
+          <div class="sm-actions">
+            <div class="sm-btn">Ajouter une note</div>
+            <div class="sm-btn-primary">Générer devis</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURE DETAIL: CLIENT SPACE ── -->
+<section class="feature-detail">
+  <div class="container fd-row reverse">
+    <div class="fd-text">
+      <div class="section-label">Espace client</div>
+      <h2>Vos clients restent informés sans appels inutiles</h2>
+      <ul class="fd-list">
+        <li><span class="fd-icon">✓</span><div><strong>Accès par lien sécurisé</strong> — Pas de compte à créer, un simple lien suffit</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Suivi en temps réel</strong> — Le client voit l'avancement et les notes publiques</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Messagerie directe</strong> — Questions et réponses sans sortir de la plateforme</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Devis &amp; factures</strong> — Le client consulte et télécharge ses documents</div></li>
+      </ul>
+    </div>
+    <div class="fd-visual">
+      <div class="screen-mock client-mock">
+        <div class="sm-header client-header">
+          <img src="img/Intervys-logo.png" class="sm-logo" alt="">
+          <span class="sm-site-name"><span style="color:#fff">Inter</span><span style="color:#1e90ff">vio</span></span>
+        </div>
+        <div class="sm-body">
+          <div class="client-status-block">
+            <div class="client-status-title">Votre réparation</div>
+            <div class="client-status-device">MacBook Pro 14"</div>
+            <div class="client-progress">
+              <div class="cp-step done">Reçue</div>
+              <div class="cp-line done"></div>
+              <div class="cp-step active">En cours</div>
+              <div class="cp-line"></div>
+              <div class="cp-step">Prête</div>
+              <div class="cp-line"></div>
+              <div class="cp-step">Rendue</div>
+            </div>
+          </div>
+          <div class="client-msg-block">
+            <div class="client-msg-label">Messages</div>
+            <div class="client-msg admin">Pièce commandée, délai estimé : 3 jours</div>
+            <div class="client-msg user">Ok merci ! Vous pouvez me prévenir quand c'est prêt ?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURE DETAIL: BILLING ── -->
+<section class="feature-detail alt">
+  <div class="container fd-row">
+    <div class="fd-text">
+      <div class="section-label">Facturation</div>
+      <h2>Des devis et factures professionnels en quelques secondes</h2>
+      <ul class="fd-list">
+        <li><span class="fd-icon">✓</span><div><strong>PDF prêt à envoyer</strong> — Devis et factures générés automatiquement</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Factur-X</strong> — Format de facturation électronique conforme à la norme européenne</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Catalogue de services</strong> — Ajoutez vos prestations habituelles en un clic</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>TVA &amp; mentions légales</strong> — Configuration une seule fois, appliquée partout</div></li>
+      </ul>
+    </div>
+    <div class="fd-visual">
+      <div class="screen-mock invoice-mock">
+        <div class="invoice-header">
+          <div class="inv-logo-row">
+            <img src="img/Intervys-logo.png" class="inv-logo" alt="">
+            <span class="inv-brand"><span style="color:#fff">Inter</span><span style="color:#1e90ff">vio</span></span>
+          </div>
+          <div class="inv-label">FACTURE</div>
+        </div>
+        <div class="inv-meta">
+          <div class="inv-row"><span>N°</span><span>2025-042</span></div>
+          <div class="inv-row"><span>Date</span><span>14/06/2025</span></div>
+          <div class="inv-row"><span>Client</span><span>Martin Dupont</span></div>
+        </div>
+        <div class="inv-lines">
+          <div class="inv-line-head"><span>Prestation</span><span>Qté</span><span>HT</span></div>
+          <div class="inv-line"><span>Remplacement dalle LCD</span><span>1</span><span>180 €</span></div>
+          <div class="inv-line"><span>Main d'œuvre</span><span>2h</span><span>60 €</span></div>
+        </div>
+        <div class="inv-total">
+          <span>Total TTC</span>
+          <span class="inv-total-amt">288,00 €</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURE DETAIL: WEBSITE ── -->
+<section class="feature-detail">
+  <div class="container fd-row reverse">
+    <div class="fd-text">
+      <div class="section-label">Site web inclus</div>
+      <h2>Votre vitrine professionnelle,<br>prête en 30 secondes</h2>
+      <ul class="fd-list">
+        <li><span class="fd-icon">✓</span><div><strong>Personnalisable depuis l'admin</strong> — Nom, slogan, couleurs, coordonnées : tout se configure sans toucher au code</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Mise à jour en temps réel</strong> — Les visiteurs voient toujours les informations à jour, directement depuis votre Intervys</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Formulaire de contact intégré</strong> — Vos clients vous contactent directement depuis votre site</div></li>
+        <li><span class="fd-icon">✓</span><div><strong>Espace client intégré</strong> — Un bouton "Espace client" renvoie vers le portail de suivi Intervys</div></li>
+      </ul>
+    </div>
+    <div class="fd-visual">
+      <!-- Mockup vitrine Intervys -->
+      <div style="border-radius:12px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6);border:1px solid #1e2535;width:100%;max-width:420px">
+        <!-- Barre navigateur -->
+        <div style="background:#111827;padding:.45rem .75rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid #1e2535">
+          <span style="width:9px;height:9px;border-radius:50%;background:#ff5f57;display:inline-block"></span>
+          <span style="width:9px;height:9px;border-radius:50%;background:#ffbd2e;display:inline-block"></span>
+          <span style="width:9px;height:9px;border-radius:50%;background:#28c840;display:inline-block"></span>
+          <div style="flex:1;background:#0d1117;border-radius:4px;padding:.2rem .6rem;font-family:monospace;font-size:.62rem;color:#4b5563;text-align:center">plombier-martin.fr</div>
+        </div>
+        <!-- Site vitrine -->
+        <div style="background:#080c14;position:relative;overflow:hidden;min-height:300px">
+          <!-- Glow de fond -->
+          <div style="position:absolute;top:-40px;left:50%;transform:translateX(-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(30,144,255,.15) 0%,transparent 70%);pointer-events:none"></div>
+          <!-- Nav -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)">
+            <div style="display:flex;align-items:center;gap:.4rem">
+              <span style="font-size:1rem">🔧</span>
+              <span style="font-weight:700;font-size:.75rem;color:#fff">Plombier Martin</span>
+            </div>
+            <div style="background:linear-gradient(90deg,#1e90ff,#7c3aed);border-radius:4px;padding:.2rem .6rem;font-size:.6rem;color:#fff;font-weight:600">Espace client</div>
+          </div>
+          <!-- Hero -->
+          <div style="padding:1.5rem 1rem 1rem;text-align:center;position:relative">
+            <!-- Anneaux décoratifs -->
+            <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);width:160px;height:160px;border-radius:50%;border:1px solid rgba(30,144,255,.12);pointer-events:none"></div>
+            <div style="position:absolute;top:35px;left:50%;transform:translateX(-50%);width:130px;height:130px;border-radius:50%;border:1px solid rgba(30,144,255,.08);pointer-events:none"></div>
+            <div style="position:relative;z-index:1">
+              <div style="font-size:.55rem;color:#64748b;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">Plombier certifié RGE</div>
+              <div style="font-size:1.3rem;font-weight:800;color:#fff;line-height:1.2;margin-bottom:.4rem">Plombier<span style="background:linear-gradient(90deg,#1e90ff,#3d9bd4);-webkit-background-clip:text;-webkit-text-fill-color:transparent"> Martin</span></div>
+              <div style="font-size:.58rem;color:#64748b;margin-bottom:.8rem">Dépannage · Installation · Urgences 24h</div>
+              <div style="display:flex;gap:.4rem;justify-content:center">
+                <div style="background:linear-gradient(90deg,#1e90ff,#7c3aed);border-radius:20px;padding:.3rem .7rem;font-size:.6rem;color:#fff;font-weight:600">Me contacter</div>
+                <div style="border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:.3rem .7rem;font-size:.6rem;color:#94a3b8">Services →</div>
+              </div>
+            </div>
+          </div>
+          <!-- Services mini -->
+          <div style="padding:.5rem 1rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
+            <div style="background:linear-gradient(135deg,rgba(30,144,255,.08),rgba(30,144,255,.02));border:1px solid rgba(30,144,255,.18);border-radius:8px;padding:.55rem .7rem;display:flex;align-items:center;gap:.45rem">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1e90ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21l4-4 4 4"/></svg>
+              <span style="font-size:.6rem;color:#e2e8f0;font-weight:500">Dépannage</span>
+            </div>
+            <div style="background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(124,58,237,.02));border:1px solid rgba(124,58,237,.18);border-radius:8px;padding:.55rem .7rem;display:flex;align-items:center;gap:.45rem">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+              <span style="font-size:.6rem;color:#e2e8f0;font-weight:500">Réseau</span>
+            </div>
+            <div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(16,185,129,.02));border:1px solid rgba(16,185,129,.18);border-radius:8px;padding:.55rem .7rem;display:flex;align-items:center;gap:.45rem">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span style="font-size:.6rem;color:#e2e8f0;font-weight:500">Domotique</span>
+            </div>
+            <div style="background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(245,158,11,.02));border:1px solid rgba(245,158,11,.18);border-radius:8px;padding:.55rem .7rem;display:flex;align-items:center;gap:.45rem">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              <span style="font-size:.6rem;color:#e2e8f0;font-weight:500">Impression 3D</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ── -->
+<section class="how" id="how">
+  <div class="container">
+    <div class="section-label">Installation</div>
+    <h2 class="section-title">Opérationnel en 3 étapes</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <h3>Choisissez votre méthode</h3>
+          <p>Installeur <code>.exe</code> Windows en un clic, ou image Docker pour Linux, macOS et serveurs — aucune dépendance externe.</p>
+        </div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <h3>Configurez en 30 secondes</h3>
+          <p>L'assistant Windows configure tout et crée votre compte admin. Sous Docker, un seul fichier <code>compose.yml</code> suffit.</p>
+        </div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <h3>C'est prêt !</h3>
+          <p>Sur Windows, deux raccourcis sur le bureau. Sous Docker, <code>docker compose up</code> et l'interface est accessible immédiatement.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── MULTI-MÉTIER ── -->
+<section class="usecases" id="metiers">
+  <div class="container">
+    <div class="section-label">Multi-métier</div>
+    <h2 class="section-title">Un outil, <span class="gradient-text">tous les corps de métier</span></h2>
+    <p style="text-align:center;color:#94a3b8;max-width:560px;margin:0 auto 3rem;font-size:1.05rem;line-height:1.7">
+      Intervys s'adapte à votre activité. Chaque métier dispose de son propre thème visuel — interface admin, couleurs, site vitrine — configuré en un clic depuis les paramètres.
+    </p>
+    <div class="usecases-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem">
+
+      <div class="usecase" style="border-left:3px solid #1e90ff;--uc:rgba(30,144,255,.1)">
+        <div class="usecase-icon">💻</div>
+        <h3>Informatique &amp; Tech</h3>
+        <p>PC, Mac, smartphones, réseau, domotique, impression 3D.</p>
+        <div class="uc-palette"><span style="background:#1e90ff"></span><span style="background:#07090e"></span><span style="background:#0b0f18"></span></div>
+      </div>
+
+      <div class="usecase" style="border-left:3px solid #5a8a3c;--uc:rgba(90,138,60,.1)">
+        <div class="usecase-icon">🌿</div>
+        <h3>Jardinier &amp; Paysagiste</h3>
+        <p>Tonte, élagage, création de massifs, arrosage automatique.</p>
+        <div class="uc-palette"><span style="background:#5a8a3c"></span><span style="background:#f5f8f0"></span><span style="background:#e8efde"></span></div>
+      </div>
+
+      <div class="usecase" style="border-left:3px solid #1a6ea8;--uc:rgba(26,110,168,.1)">
+        <div class="usecase-icon">🔧</div>
+        <h3>Plombier &amp; Chauffagiste</h3>
+        <p>Fuites, chauffe-eau, salle de bain, dépannage urgence.</p>
+        <div class="uc-palette"><span style="background:#1a6ea8"></span><span style="background:#f0f6fd"></span><span style="background:#deeaf8"></span></div>
+      </div>
+
+      <div class="usecase" style="border-left:3px solid #7a4f2d;--uc:rgba(122,79,45,.1)">
+        <div class="usecase-icon">🪵</div>
+        <h3>Menuisier &amp; Ébéniste</h3>
+        <p>Portes, fenêtres, escaliers, dressings, mobilier sur-mesure.</p>
+        <div class="uc-palette"><span style="background:#7a4f2d"></span><span style="background:#fdf8f3"></span><span style="background:#f4ead8"></span></div>
+      </div>
+
+      <div class="usecase" style="border-left:3px solid #e85d04;--uc:rgba(232,93,4,.1)">
+        <div class="usecase-icon">🔩</div>
+        <h3>Garagiste &amp; Mécanicien</h3>
+        <p>Révision, freinage, carrosserie, électronique auto.</p>
+        <div class="uc-palette"><span style="background:#e85d04"></span><span style="background:#0d0f14"></span><span style="background:#13161f"></span></div>
+      </div>
+
+      <div class="usecase" style="border-left:3px solid #f59e0b;--uc:rgba(245,158,11,.1)">
+        <div class="usecase-icon">⚡</div>
+        <h3>Électricien</h3>
+        <p>Installation, mise aux normes NF C 15-100, borne VE, domotique.</p>
+        <div class="uc-palette"><span style="background:#f59e0b"></span><span style="background:#0a0b08"></span><span style="background:#161710"></span></div>
+      </div>
+
+      <div class="usecase" style="border-left:3px solid #b8902a;--uc:rgba(184,144,42,.1)">
+        <div class="usecase-icon">🎉</div>
+        <h3>Décorateur &amp; Événements</h3>
+        <p>Mariages, anniversaires, baptêmes, soirées d'entreprise.</p>
+        <div class="uc-palette"><span style="background:#b8902a"></span><span style="background:#fdfaf4"></span><span style="background:#f6edd8"></span></div>
+      </div>
+
+      <div class="usecase" style="border-left:3px solid #7c3aed;--uc:rgba(124,58,237,.1);opacity:.7">
+        <div class="usecase-icon">🧩</div>
+        <h3>Et bien d'autres…</h3>
+        <p>Nouveau thème ? Il suffit de trois lignes de config pour en créer un nouveau.</p>
+        <div class="uc-palette"><span style="background:#7c3aed"></span><span style="background:#4f46e5"></span><span style="background:#312e81"></span></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ── DEMOS ── -->
+<section class="demos" id="demos">
+  <div class="container" style="text-align:center">
+    <div class="section-label">DÉMO</div>
+    <h2 class="section-title">Les interfaces en action</h2>
+    <p class="section-sub">Vitrine publique, back-office admin, espace client — découvrez chaque vue.</p>
+
+    <div class="demo-tabs">
+      <button class="demo-tab active" onclick="showDemo(0,this)">🌐 Vitrine plombier</button>
+      <button class="demo-tab"        onclick="showDemo(1,this)">⚙️ Tableau de bord admin</button>
+      <button class="demo-tab"        onclick="showDemo(2,this)">📱 Espace client</button>
+    </div>
+
+    <!-- Demo 0 : Vitrine plomberie -->
+    <div class="demo-screen active" id="demo-0">
+      <div class="demo-browser">
+        <div class="demo-bar">
+          <span class="demo-dot r"></span><span class="demo-dot y"></span><span class="demo-dot g"></span>
+          <div class="demo-url">plomberie-rapide.fr</div>
+        </div>
+        <div class="demo-body">
+          <div class="dv-nav" style="background:#0d1a2a;border-color:rgba(26,110,168,.2)">
+            <span style="font-size:.8rem;font-weight:700;color:#fff">🔧 Plomberie Rapide</span>
+            <div style="display:flex;gap:.5rem">
+              <span style="font-size:.7rem;color:#7ba8c4;cursor:default">Prestations</span>
+              <span style="font-size:.7rem;color:#7ba8c4;cursor:default">Contact</span>
+              <span class="dv-btn" style="background:#1a6ea8;color:#fff">Espace client</span>
+            </div>
+          </div>
+          <div class="dv-hero" style="background:linear-gradient(135deg,#0d1a2a 0%,#1a3550 100%)">
+            <div style="position:absolute;top:0;right:0;width:40%;height:100%;background:radial-gradient(ellipse at top right,rgba(26,110,168,.25) 0%,transparent 70%)"></div>
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#3d9bd4;margin-bottom:.4rem">Plombier certifié RGE</div>
+            <div style="font-size:1.3rem;font-weight:800;color:#fff;line-height:1.25">Urgences 24h/24,<br><em style="color:#3d9bd4;font-style:normal">7j/7</em></div>
+            <div style="font-size:.72rem;color:#7ba8c4;margin-top:.4rem;max-width:320px">Fuite, débouchage, installation — devis gratuit en ligne, intervention rapide.</div>
+            <div class="dv-cta">
+              <span class="dv-btn" style="background:#1a6ea8;color:#fff">Demander un devis</span>
+              <span class="dv-btn" style="background:transparent;border:1px solid rgba(26,110,168,.4);color:#7ba8c4">Nos services</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:1rem;padding:.75rem 1rem;background:#0a1220;border-top:1px solid rgba(26,110,168,.12)">
+            <div style="text-align:center;flex:1"><div style="font-weight:800;color:#fff;font-size:.95rem">+200</div><div style="font-size:.62rem;color:#7ba8c4">interventions</div></div>
+            <div style="text-align:center;flex:1"><div style="font-weight:800;color:#fff;font-size:.95rem">24h</div><div style="font-size:.62rem;color:#7ba8c4">délai moyen</div></div>
+            <div style="text-align:center;flex:1"><div style="font-weight:800;color:#fff;font-size:.95rem">5⭐</div><div style="font-size:.62rem;color:#7ba8c4">avis clients</div></div>
+          </div>
+          <div class="dv-cards" style="background:#07090e">
+            <div class="dv-card" style="background:#0d1a2a;border-color:rgba(26,110,168,.2);color:#cde">🚿<br><strong style="font-size:.75rem;color:#fff">Débouchage</strong><br><span style="color:#7ba8c4">Tous types</span></div>
+            <div class="dv-card" style="background:#0d1a2a;border-color:rgba(26,110,168,.2);color:#cde">🔧<br><strong style="font-size:.75rem;color:#fff">Fuite</strong><br><span style="color:#7ba8c4">Urgence 24h</span></div>
+            <div class="dv-card" style="background:#0d1a2a;border-color:rgba(26,110,168,.2);color:#cde">🛁<br><strong style="font-size:.75rem;color:#fff">Installation</strong><br><span style="color:#7ba8c4">Salle de bain</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 1 : Admin dashboard -->
+    <div class="demo-screen" id="demo-1">
+      <div class="demo-browser">
+        <div class="demo-bar">
+          <span class="demo-dot r"></span><span class="demo-dot y"></span><span class="demo-dot g"></span>
+          <div class="demo-url">localhost:8090/app/#/admin</div>
+        </div>
+        <div class="demo-body">
+          <div class="da-layout">
+            <div class="da-sidebar">
+              <div class="da-logo"><img src="img/Intervys-logo.png" style="width:20px;height:20px;object-fit:contain" alt=""> Intervys</div>
+              <div class="da-section">Tableau de bord</div>
+              <div class="da-link active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Dashboard</div>
+              <div class="da-section">Interventions</div>
+              <div class="da-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> Demandes</div>
+              <div class="da-section">Clients</div>
+              <div class="da-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Comptes</div>
+              <div class="da-section">Facturation</div>
+              <div class="da-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Devis</div>
+              <div class="da-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Factures</div>
+            </div>
+            <div class="da-main">
+              <div class="da-title">Dashboard — Plomberie Rapide</div>
+              <div class="da-stats">
+                <div class="da-stat"><div class="da-stat-n" style="color:#60a5fa">12</div><div class="da-stat-l">Interventions actives</div></div>
+                <div class="da-stat"><div class="da-stat-n" style="color:#34d399">3</div><div class="da-stat-l">Devis en attente</div></div>
+                <div class="da-stat"><div class="da-stat-n" style="color:#f59e0b">2</div><div class="da-stat-l">Messages non lus</div></div>
+              </div>
+              <div style="font-size:.68rem;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">Interventions récentes</div>
+              <div class="da-row"><span style="color:#94a3b8;flex:1">Dupont — Fuite cuisine</span><span class="da-badge" style="background:rgba(59,130,246,.15);color:#60a5fa">En cours</span></div>
+              <div class="da-row"><span style="color:#94a3b8;flex:1">Martin — Débouchage WC</span><span class="da-badge" style="background:rgba(234,179,8,.12);color:#f59e0b">Planifié</span></div>
+              <div class="da-row"><span style="color:#94a3b8;flex:1">Bernard — Installation</span><span class="da-badge" style="background:rgba(52,211,153,.12);color:#34d399">Terminé</span></div>
+              <div class="da-row"><span style="color:#94a3b8;flex:1">Leblanc — Chauffe-eau</span><span class="da-badge" style="background:rgba(239,68,68,.12);color:#f87171">Urgent</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 2 : Espace client mobile -->
+    <div class="demo-screen" id="demo-2">
+      <div class="demo-mobile-wrap">
+        <div class="demo-phone">
+          <div class="dp-bar"><div class="dp-notch"></div></div>
+          <div class="dp-body">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+              <div style="font-size:.75rem;font-weight:700;color:#e2e8f0">Bonjour, Marc 👋</div>
+              <div style="width:26px;height:26px;border-radius:50%;background:#1a3550;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#60a5fa">MD</div>
+            </div>
+            <div class="dp-card">
+              <div style="font-size:.65rem;color:#64748b;margin-bottom:.3rem">Intervention en cours</div>
+              <div style="font-size:.78rem;font-weight:700;color:#fff;margin-bottom:.35rem">Fuite cuisine — évier</div>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <span class="dp-status" style="background:rgba(59,130,246,.15);color:#60a5fa">En cours</span>
+                <span style="font-size:.62rem;color:#475569">Aujourd'hui 14h</span>
+              </div>
+              <div style="margin-top:.6rem;display:flex;gap:0">
+                ${['Créé','Planifié','En cours','Terminé'].map((s,i) => `<div style="flex:1;text-align:center"><div style="width:8px;height:8px;border-radius:50%;margin:0 auto 3px;background:${i<3?'#3b82f6':'#1e2130'}"></div><div style="font-size:.55rem;color:${i<3?'#60a5fa':'#475569'}">${s}</div></div>`).join('<div style="flex:0 0 8px;border-top:1px dashed #1e3050;margin-top:4px"></div>')}
+              </div>
+            </div>
+            <div class="dp-card">
+              <div style="font-size:.65rem;color:#64748b;margin-bottom:.25rem">Devis #DV-2024-018</div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:.8rem;font-weight:700;color:#fff">348,00 €</span>
+                <span class="dp-status" style="background:rgba(234,179,8,.12);color:#f59e0b">À valider</span>
+              </div>
+            </div>
+            <div class="dp-card" style="border-color:rgba(30,144,255,.2)">
+              <div style="font-size:.65rem;color:#60a5fa;margin-bottom:.2rem">💬 Nouveau message</div>
+              <div style="font-size:.7rem;color:#94a3b8">"Le technicien arrive à 14h..."</div>
+            </div>
+            <div style="display:flex;gap:.5rem;margin-top:.5rem">
+              <div style="flex:1;padding:.5rem;background:#0f1520;border-radius:8px;text-align:center;font-size:.65rem;color:#60a5fa;border:1px solid rgba(30,144,255,.15)">📋 Mes demandes</div>
+              <div style="flex:1;padding:.5rem;background:#0f1520;border-radius:8px;text-align:center;font-size:.65rem;color:#60a5fa;border:1px solid rgba(30,144,255,.15)">💬 Messages</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="color:#64748b;font-size:.85rem;margin-top:1.5rem">Vos clients suivent leurs interventions, consultent leurs devis et échangent avec vous — depuis n'importe quel appareil.</p>
+    </div>
+
+    <!-- Liens démos par métier -->
+    <div class="demo-metier-links">
+      <div class="demo-metier-label" style="margin-bottom:.75rem">Interface admin — démo interactive complète</div>
+      <a href="admin-demo.html" style="display:inline-flex;align-items:center;gap:.55rem;padding:.65rem 1.4rem;background:rgba(var(--blue-rgb),.12);border:1px solid rgba(var(--blue-rgb),.3);border-radius:50px;color:#93c5fd;font-size:.9rem;font-weight:700;text-decoration:none;transition:background .2s,transform .15s;margin-bottom:1.75rem" onmouseover="this.style.background='rgba(30,144,255,.22)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(30,144,255,.12)';this.style.transform=''">
+        ⚙️ Ouvrir la démo admin →
+      </a>
+      <div class="demo-metier-label">Vitrines par métier — choisissez le vôtre</div>
+      <div class="demo-metier-grid">
+        <a href="plomberie.html">🔧 Plombier</a>
+        <a href="jardin.html">🌿 Jardinier</a>
+        <a href="garage.html">🔩 Garagiste</a>
+        <a href="menuiserie.html">🪵 Menuisier</a>
+        <a href="electricien.html">⚡ Électricien</a>
+        <a href="decorateur.html">🎨 Décorateur</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+function showDemo(n, btn) {
+  document.querySelectorAll('.iv-page .demo-screen').forEach((el,i) => el.classList.toggle('active', i===n));
+  document.querySelectorAll('.iv-page .demo-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+</script>
+
+<!-- ── OPEN SOURCE ── -->
+<section class="opensource" id="open-source">
+  <div class="container">
+    <div class="os-card">
+      <div class="os-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      </div>
+      <h2>100% Open-source</h2>
+      <p>Intervys est distribué librement. Inspectez le code, adaptez-le à vos besoins, contribuez. Aucun frais caché, aucun abonnement — pour toujours.</p>
+      <div class="os-tags">
+        <span>Tauri v2</span>
+        <span>PocketBase</span>
+        <span>JavaScript</span>
+        <span>Rust</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── COFFEE ── -->
+<section class="coffee-section">
+  <div class="container">
+    <p style="color:#64748b;font-size:.9rem;margin-bottom:.75rem">Ce projet tourne grâce à du café, de la passion et un peu de folie 🫠</p>
+    <a class="coffee-btn" href="https://www.buymeacoffee.com/Intervys" target="_blank" rel="noopener">
+      ☕ Offrir un café au dev
+    </a>
+    <p style="color:#475569;font-size:.78rem;margin-top:.9rem;font-style:italic">
+      Chaque café prolonge d'une nuit la durée de vie d'Intervys. Peut-être deux si c'est un grand crème.
+    </p>
+  </div>
+</section>
+
+<!-- ── DOWNLOAD ── -->
+<section class="download" id="download">
+  <div class="container dl-inner">
+    <img src="img/Intervys-logo.png" alt="Intervys" class="dl-logo">
+    <h2>Prêt à démarrer ?</h2>
+    <p>Téléchargez Intervys gratuitement et commencez à gérer vos interventions dès aujourd'hui.</p>
+    <div class="dl-buttons">
+      <a href="https://github.com/Intervys/app/releases/latest" class="btn-primary-lg big">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        🖥️ Installer sur Windows
+      </a>
+      <a href="https://github.com/Intervys/app" class="btn-ghost-lg big">
+        🐳 Déployer avec Docker
+      </a>
+    </div>
+    <div class="dl-meta">Windows 10/11 · 64 bits · ~20 Mo &nbsp;|&nbsp; Docker Hub · Linux · macOS · serveurs</div>
+  </div>
+</section>
+
+<!-- ── FOOTER Intervys (dans la page HG) ── -->
+<section style="background:#0a0f1a;border-top:1px solid rgba(255,255,255,.07);padding:32px 0;text-align:center">
+  <div class="container">
+    <a href="index.html" style="color:#64748b;font-size:.85rem;text-decoration:none;font-family:'Inter',sans-serif">← Retour à l'accueil</a>
+  </div>
+</section>
+
+</div><!-- /.iv-page -->
+
+<script src="js/main.js"></script>
+</body>
+</html>
