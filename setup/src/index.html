@@ -82,7 +82,7 @@ input[type=text]:focus{border-color:var(--blue)}
     <div class="header-title">Intervys Setup</div>
     <div class="header-sub">Installation guidée</div>
   </div>
-  <div class="version">v0.2.0-beta</div>
+  <div class="version" id="app-version">…</div>
 </div>
 
 <div class="main">
@@ -238,6 +238,11 @@ async function init() {
 
   try { installDir = await _invoke('get_default_dir'); }
   catch(e) { installDir = 'C:\\intervys'; }
+
+  try {
+    const ver = await _invoke('get_app_version');
+    document.getElementById('app-version').textContent = 'v' + ver;
+  } catch(e) {}
 
   // Détecter si Intervys est déjà installé
   try {
@@ -542,28 +547,25 @@ async function doUninstall() {
 
   function addLog(msg) { log.innerHTML += '› ' + msg + '<br>'; log.scrollTop = log.scrollHeight; }
 
-  // Écouter les événements de progression émis par Rust
-  const unlisten = await _listen('uninst-step', (e) => {
-    const { msg, pct } = e.payload;
-    bar.style.width = pct + '%';
-    label.textContent = msg;
-    addLog(msg);
-    if (pct >= 100) {
-      bar.style.background = 'var(--green)';
-      label.style.color = 'var(--green)';
-      document.querySelector('#screen6 .screen-title').style.color = 'var(--green)';
-      document.querySelector('#screen6 .screen-title').textContent = '✓ Désinstallation réussie';
-      setFooter('Intervys a été complètement supprimé.');
-      const footer = document.querySelector('.footer > div:last-child');
-      footer.innerHTML = `<button class="btn btn-primary" onclick="window.close()">Fermer</button>`;
-    }
-  });
-
   try {
+    const unlisten = await _listen('uninst-step', (e) => {
+      const { msg, pct } = e.payload;
+      bar.style.width = pct + '%';
+      label.textContent = msg;
+      addLog(msg);
+      if (pct >= 100) {
+        bar.style.background = 'var(--green)';
+        label.style.color = 'var(--green)';
+        document.querySelector('#screen6 .screen-title').style.color = 'var(--green)';
+        document.querySelector('#screen6 .screen-title').textContent = '✓ Désinstallation réussie';
+        setFooter('Intervys a été complètement supprimé.');
+        const footer = document.querySelector('.footer > div:last-child');
+        footer.innerHTML = `<button class="btn btn-primary" onclick="window.close()">Fermer</button>`;
+      }
+    });
     await _invoke('uninstall');
     unlisten();
   } catch(e) {
-    unlisten();
     addLog('✗ Erreur : ' + e);
     bar.style.background = 'var(--red)';
     label.textContent = 'Erreur';

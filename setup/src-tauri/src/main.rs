@@ -17,6 +17,11 @@ static PAYLOAD_BASE: OnceLock<std::path::PathBuf> = OnceLock::new();
 // ── Vérifications système ─────────────────────────────────────────
 
 #[tauri::command]
+fn get_app_version(app: tauri::AppHandle) -> String {
+    app.package_info().version.to_string()
+}
+
+#[tauri::command]
 fn check_docker() -> bool {
     which::which("docker").is_ok()
 }
@@ -651,6 +656,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            get_app_version,
             check_docker, check_wsl, check_mode, get_default_dir,
             run_command, run_detached, create_dir, write_file, open_browser,
             enable_wsl, install_docker,
