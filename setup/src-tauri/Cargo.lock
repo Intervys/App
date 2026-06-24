@@ -1714,7 +1714,7 @@ dependencies = [
 
 [[package]]
 name = "intervys-setup"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "reqwest 0.12.28",
  "serde",

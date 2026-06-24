@@ -20,15 +20,14 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: |
-            controller -> target
+            controller/src-tauri -> target
             setup/src-tauri -> target
 
-      - name: Build controller (intervys.exe + uninstall.exe)
-        working-directory: controller
+      - name: Build controller (intervys.exe)
+        working-directory: controller/src-tauri
         run: |
           cargo build --release
-          cp target/release/intervys.exe  ../setup/src/payload/intervys.exe
-          cp target/release/uninstall.exe ../setup/src/payload/uninstall.exe
+          cp target/release/intervys.exe ../../setup/src/payload/intervys.exe
 
       - name: Build intervys-setup.exe
         working-directory: setup/src-tauri

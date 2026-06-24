@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Contrôleur Intervys</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:system-ui,sans-serif; }
+  body { background:#0f1117; color:#e2e8f0; height:100vh; display:flex;
+         flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+
+  .brand { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .brand img { width:80px; height:80px; object-fit:contain; }
+  h1 { font-size:1.3rem; font-weight:700; color:#fff; }
+
+  .status-badge { display:flex; align-items:center; gap:8px; font-size:.9rem; }
+  .dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .dot.on  { background:#22c55e; box-shadow:0 0 6px #22c55e; }
+  .dot.off { background:#ef4444; }
+
+  .actions { display:flex; flex-direction:column; gap:8px; width:250px; }
+  button {
+    padding:9px 0; border:none; border-radius:8px;
+    font-size:.9rem; font-weight:600; cursor:pointer; transition:.15s;
+  }
+  .btn-start { background:#22c55e; color:#fff; }
+  .btn-stop  { background:#ef4444; color:#fff; }
+  .btn-secondary { background:#1e293b; color:#94a3b8; border:1px solid #334155; }
+  .btn-row { display:flex; gap:8px; }
+  .btn-row button { flex:1; color:#60a5fa; background:#1e293b; border:1px solid #334155; font-size:.82rem; }
+  button:hover { filter:brightness(1.12); }
+  button:disabled { opacity:.4; cursor:default; filter:none; }
+
+  .btn-uninstall { background:transparent; color:#475569; border:1px solid #334155;
+                   font-size:.78rem; margin-top:4px; }
+  .btn-uninstall:hover { color:#ef4444; border-color:#ef4444; filter:none; }
+
+  .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6);
+              align-items:center; justify-content:center; }
+  .modal-bg.open { display:flex; }
+  .modal { background:#1e293b; border:1px solid #334155; border-radius:12px;
+           padding:24px; width:290px; display:flex; flex-direction:column; gap:14px; }
+  .modal h2 { font-size:1rem; color:#e2e8f0; }
+  .modal label { font-size:.8rem; color:#94a3b8; display:block; margin-bottom:4px; }
+  .modal input {
+    width:100%; padding:8px 10px; background:#0f1117; border:1px solid #334155;
+    border-radius:6px; color:#e2e8f0; font-size:.9rem;
+  }
+  .modal input:focus { outline:none; border-color:#60a5fa; }
+  .modal-actions { display:flex; gap:8px; margin-top:4px; }
+  .modal-actions button { flex:1; padding:9px; }
+  .btn-confirm { background:#3b82f6; color:#fff; }
+  #modal-msg { font-size:.8rem; min-height:1.2em; text-align:center; }
+  .ok  { color:#22c55e; }
+  .err { color:#ef4444; }
+</style>
+</head>
+<body>
+
+<div class="brand">
+  <img src="logo.png" alt="Intervys">
+  <h1>Contrôleur Intervys</h1>
+</div>
+
+<div class="status-badge">
+  <div class="dot" id="dot"></div>
+  <span id="status-text">Vérification…</span>
+</div>
+
+<div class="actions">
+  <button class="btn-start" id="btn-start" onclick="doStart()">▶ Démarrer le serveur</button>
+  <button class="btn-stop"  id="btn-stop"  onclick="doStop()">■ Arrêter le serveur</button>
+  <button class="btn-secondary" onclick="openResetModal()">🔑 Réinitialiser le mot de passe</button>
+  <div class="btn-row">
+    <button onclick="doSite()">🌐 Site</button>
+    <button onclick="doAdmin()">⚙ Admin</button>
+  </div>
+  <button class="btn-uninstall" onclick="doUninstall()">🗑 Désinstaller Intervys</button>
+</div>
+
+<div class="modal-bg" id="modal-bg" onclick="closeModalBg(event)">
+  <div class="modal">
+    <h2>🔑 Nouveau mot de passe admin</h2>
+    <div>
+      <label>Email admin</label>
+      <input type="email" id="r-email" placeholder="admin@intervys.local">
+    </div>
+    <div>
+      <label>Nouveau mot de passe</label>
+      <input type="password" id="r-pass" placeholder="8 caractères minimum">
+    </div>
+    <div>
+      <label>Confirmer</label>
+      <input type="password" id="r-pass2" placeholder="Répétez le mot de passe">
+    </div>
+    <div id="modal-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn-confirm" id="btn-confirm" onclick="doResetPassword()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const { invoke } = window.__TAURI__.core;
+const { listen }  = window.__TAURI__.event;
+
+async function refresh() {
+  const running = await invoke('server_status');
+  setStatus(running);
+}
+
+function setStatus(running) {
+  document.getElementById('dot').className = 'dot ' + (running ? 'on' : 'off');
+  document.getElementById('status-text').textContent = running ? 'Serveur en ligne' : 'Serveur arrêté';
+  document.getElementById('btn-start').disabled = running;
+  document.getElementById('btn-stop').disabled  = !running;
+}
+
+window.doStart = async () => {
+  await invoke('start_server').catch(console.error);
+  setTimeout(refresh, 1500);
+};
+window.doStop = async () => {
+  await invoke('stop_server').catch(console.error);
+  setTimeout(refresh, 800);
+};
+window.doSite  = () => invoke('open_url', { url: 'http://localhost:8090' });
+window.doAdmin = () => invoke('open_url', { url: 'http://localhost:8090/app/' });
+
+window.openResetModal = () => {
+  document.getElementById('modal-bg').classList.add('open');
+  document.getElementById('modal-msg').textContent = '';
+  document.getElementById('r-email').value = '';
+  document.getElementById('r-pass').value = '';
+  document.getElementById('r-pass2').value = '';
+};
+window.closeModal = () => document.getElementById('modal-bg').classList.remove('open');
+window.closeModalBg = (e) => { if (e.target.id === 'modal-bg') closeModal(); };
+
+window.doResetPassword = async () => {
+  const email = document.getElementById('r-email').value.trim();
+  const pass  = document.getElementById('r-pass').value;
+  const pass2 = document.getElementById('r-pass2').value;
+  const msg   = document.getElementById('modal-msg');
+  const btn   = document.getElementById('btn-confirm');
+
+  if (!email || !pass) { msg.textContent = 'Remplissez tous les champs.'; msg.className='err'; return; }
+  if (pass.length < 8)  { msg.textContent = 'Mot de passe trop court (8 min).'; msg.className='err'; return; }
+  if (pass !== pass2)   { msg.textContent = 'Les mots de passe ne correspondent pas.'; msg.className='err'; return; }
+
+  btn.disabled = true;
+  msg.className = '';
+  msg.textContent = 'Réinitialisation en cours…';
+
+  try {
+    await invoke('reset_password', { email, password: pass });
+    msg.textContent = '✓ Mot de passe mis à jour !';
+    msg.className = 'ok';
+    setTimeout(closeModal, 1800);
+  } catch(e) {
+    msg.textContent = 'Erreur : ' + e;
+    msg.className = 'err';
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+window.doUninstall = async () => {
+  const ok = confirm('Désinstaller Intervys ?\n\nCela supprimera toutes les données, raccourcis et services. Cette action est irréversible.');
+  if (!ok) return;
+  await invoke('uninstall_app').catch(console.error);
+};
+
+await listen('status', e => setStatus(e.payload));
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
