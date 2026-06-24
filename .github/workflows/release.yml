@@ -56,6 +56,9 @@ jobs:
           name: windows-exe
           path: dist/
 
+      - name: Renommer exe avec version
+        run: mv dist/intervys-setup.exe dist/intervys-setup-${{ github.ref_name }}.exe
+
       - name: Créer intervys-deploy.zip (Docker)
         run: |
           mkdir -p pkg
@@ -69,14 +72,14 @@ jobs:
           cp    mailer/package.json     pkg/mailer/
           cd pkg && zip -r ../intervys-deploy.zip . && cd ..
           echo "Docker ZIP : $(du -sh intervys-deploy.zip | cut -f1)"
-          echo "Windows EXE : $(du -sh dist/intervys-setup.exe | cut -f1)"
+          echo "Windows EXE : $(du -sh dist/intervys-setup-${{ github.ref_name }}.exe | cut -f1)"
 
       - name: Publier la release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
-            dist/intervys-setup.exe
+            dist/intervys-setup-${{ github.ref_name }}.exe
             intervys-deploy.zip
             docker-compose.install.yml
             .env.example
@@ -84,7 +87,7 @@ jobs:
             ## Installation
 
             ### Windows
-            Télécharger **`intervys-setup.exe`** et l'exécuter.
+            Télécharger **`intervys-setup-${{ github.ref_name }}.exe`** et l'exécuter.
 
             ### Docker (Linux / VPS)
             ```bash
