@@ -560,7 +560,9 @@ async function doUninstall() {
         document.querySelector('#screen6 .screen-title').textContent = '✓ Désinstallation réussie';
         setFooter('Intervys a été complètement supprimé.');
         const footer = document.querySelector('.footer > div:last-child');
-        footer.innerHTML = `<button class="btn btn-primary" onclick="window.close()">Fermer</button>`;
+        footer.innerHTML = `
+          <button class="btn btn-ghost" onclick="window.close()">Fermer</button>
+          <button class="btn btn-primary" onclick="location.reload()">↺ Réinstaller</button>`;
       }
     });
     await _invoke('uninstall');
