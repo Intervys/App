@@ -1,4 +1,4 @@
-// ── admin.js ── Interface d'administration
+﻿// ── admin.js ── Interface d'administration
 
 // ── LAYOUT ──
 function renderAdminLayout(pageTitle, contentHtml) {
@@ -13,16 +13,19 @@ function renderAdminLayout(pageTitle, contentHtml) {
     <div class="app-layout">
       <aside class="sidebar" id="sidebar">
         <a class="sidebar-logo" href="#" onclick="Router.navigate('/admin')">
-          <img src="/img/logo.png" alt="Intervys">
+          <img src="/img/logo.png" alt="Intervio">
           <span>${(window._customSiteName||SITE_NAME)}</span>
         </a>
         <nav class="sidebar-nav">
           <div class="sidebar-section">Tableau de bord</div>
           <a class="sidebar-link ${pageTitle==='Dashboard'?'active':''}" onclick="closeSidebar();Router.navigate('/admin')">${ico('grid')} Dashboard</a>
+          ${canSee('billing') ? `
+          <a class="sidebar-link ${pageTitle==='Catalogue'?'active':''}" onclick="closeSidebar();productsList()">${ico('catalog')} Catalogue</a>
+          ` : ''}
           ${(canSee('interventions') || canSee('archives')) ? `
           <div class="sidebar-section">Interventions</div>
           ${canSee('interventions') ? `
-          <a class="sidebar-link ${pageTitle==='Interventions'?'active':''}" onclick="closeSidebar();Router.navigate('/admin/interventions')">${ico('tool')} Toutes les demandes</a>
+          <a class="sidebar-link ${pageTitle==='Interventions'?'active':''}" onclick="closeSidebar();Router.navigate('/admin/interventions')">${ico('tool')} Toutes les interventions</a>
           <a class="sidebar-link ${pageTitle==='Nouvelle intervention'?'active':''}" onclick="closeSidebar();Router.navigate('/admin/interventions/new')">${ico('plus')} Nouvelle intervention</a>
           ` : ''}
           ${(canSee('interventions') || canSee('archives')) ? `
@@ -46,8 +49,9 @@ function renderAdminLayout(pageTitle, contentHtml) {
           <a class="sidebar-link ${pageTitle==='Devis'?'active':''}" onclick="closeSidebar();quotesList()">${ico('doc')} Devis</a>
           ${canSee('billing') ? `
           <a class="sidebar-link ${pageTitle==='Factures'?'active':''}" onclick="closeSidebar();invoicesList()">${ico('receipt')} Factures</a>
-          <a class="sidebar-link ${pageTitle==='Catalogue'?'active':''}" onclick="closeSidebar();productsList()">${ico('grid')} Catalogue</a>
+          <a class="sidebar-link ${pageTitle==='Avoirs'?'active':''}" onclick="closeSidebar();avoirsList()">${ico('refresh')} Avoirs</a>
           <a class="sidebar-link ${pageTitle==='Paramètres PA'?'active':''}" onclick="closeSidebar();paSettings()">${ico('courthouse')} Plateforme Agréée</a>
+          <a class="sidebar-link" onclick="closeSidebar();openPaPortal()">${ico('link')} Mon espace PA</a>
           ` : ''}
           ` : ''}
           ${canSee('messages') ? `
@@ -117,6 +121,10 @@ function renderAdminLayout(pageTitle, contentHtml) {
     <div id="toast-container"></div>
   `;
   updateUnreadBadge();
+  // Polling badge messages/notifs toutes les 30s
+  if (window._badgePoll) clearInterval(window._badgePoll);
+  updateTopbarBadges();
+  window._badgePoll = setInterval(updateTopbarBadges, 30000);
   if (window._logoSize) document.querySelectorAll('.sidebar-logo img').forEach(img => img.style.height = window._logoSize + 'px');
   if (window._customLogo) {
     document.querySelectorAll('.sidebar-logo img').forEach(img => img.src = window._customLogo);
@@ -405,7 +413,7 @@ async function adminSettings() {
 
       <!-- Onglets -->
       <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem">
-        ${['Identité','Services','Email','Facturation','Compte','Mon site 🌐','Mises à jour 🔄'].map((t,i) => `
+        ${['Identité','Services','Email','Facturation','Compte','Mises à jour 🔄'].map((t,i) => `
           <button onclick="showSettingsTab(${i})" id="stab-${i}"
             style="padding:.6rem 1.25rem;background:none;border:none;border-bottom:2px solid ${i===0?'var(--blue)':'transparent'};color:${i===0?'var(--blue)':'var(--muted2)'};cursor:pointer;font-size:.85rem;transition:all .2s;white-space:nowrap"
             onmouseover="if(this.style.borderBottomColor!=='var(--blue)')this.style.color='var(--text)'"
@@ -471,6 +479,28 @@ async function adminSettings() {
           </div>
         </div>
 
+        <div class="card" style="margin-bottom:1rem">
+          <div class="card-header"><span class="card-title">URL publique du site</span></div>
+          <div style="padding:1.5rem">
+            <div class="form-group">
+              <label>URL du site <span style="font-size:.75rem;color:var(--muted)">(bouton CTA dans les emails clients)</span></label>
+              <input class="form-control" id="setting-site-url" placeholder="https://intervys.fr">
+              <div style="font-size:.74rem;color:var(--muted);margin-top:4px">Permet d'inclure un bouton "Répondre sur votre espace" dans tous les emails envoyés aux clients.</div>
+            </div>
+            <div class="form-group" style="margin-top:.75rem">
+              <label>URL de l'application <span style="font-size:.75rem;color:var(--muted)">(espace client / login)</span></label>
+              <input class="form-control" id="setting-app-url" placeholder="https://localhost">
+              <div style="font-size:.74rem;color:var(--muted);margin-top:4px">URL de votre interface client — utilisée dans les boutons email pour rediriger vers l'espace de suivi ou la page de connexion.</div>
+            </div>
+            <div class="form-group" style="margin-top:.75rem">
+              <label>URL du logo <span style="font-size:.75rem;color:var(--muted)">(affiché en haut des emails)</span></label>
+              <input class="form-control" id="setting-logo-url" placeholder="https://localhost/img/logo.png">
+              <div style="font-size:.74rem;color:var(--muted);margin-top:4px">URL publique absolue de votre logo (PNG/SVG). Laissez vide pour afficher le nom en texte.</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveSiteUrl()">Enregistrer</button>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header"><span class="card-title">Thème & Couleurs</span></div>
           <div style="padding:1.5rem">
@@ -512,6 +542,183 @@ async function adminSettings() {
             </div>
           </div>
         </div>
+
+        <!-- Vitrine publique (fusionné depuis Mon site) -->
+        <div class="card" style="margin-top:1rem;margin-bottom:1rem">
+          <div class="card-header">
+            <span class="card-title">🌐 Vitrine publique</span>
+            <span style="font-size:.75rem;color:var(--muted2)">Ces informations s'affichent sur votre site</span>
+          </div>
+          <div style="padding:1.5rem">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nom du site / Enseigne</label>
+                <input class="form-control" id="ws-name" placeholder="Intervys">
+              </div>
+              <div class="form-group">
+                <label>Slogan</label>
+                <input class="form-control" id="ws-tagline" placeholder="Informatique · Électronique · Multimédia">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Description (paragraphe hero)</label>
+              <textarea class="form-control" id="ws-desc" rows="2" placeholder="Un expert passionné pour tous vos besoins numériques…"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Téléphone</label>
+                <input class="form-control" id="ws-phone" placeholder="07 81 73 78 57">
+              </div>
+              <div class="form-group">
+                <label>Email public</label>
+                <input class="form-control" id="ws-email" placeholder="contact@intervys.fr">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Zone d'intervention</label>
+                <input class="form-control" id="ws-zone" placeholder="Bretagne &amp; télé-assistance nationale">
+              </div>
+              <div class="form-group">
+                <label>URL de l'API Intervio <span style="color:var(--muted2);font-size:.75rem">(site dynamique)</span></label>
+                <input class="form-control" id="ws-api-url" placeholder="https://localhost">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Texte "À propos"</label>
+              <textarea class="form-control" id="ws-about" rows="3" placeholder="Présentation, valeurs, approche…"></textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:.5rem">
+              <button class="btn btn-ghost btn-sm" onclick="loadMonSiteSettings()">Recharger</button>
+              <button class="btn btn-primary btn-sm" onclick="saveMonSiteSettings()">Enregistrer &amp; publier</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:1rem">
+          <div class="card-header">
+            <span class="card-title">🎨 Thème de la vitrine</span>
+            <span style="font-size:.75rem;color:var(--muted2)">Apparence de votre site public</span>
+          </div>
+          <div style="padding:1.5rem">
+            <div id="theme-picker" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem">
+              <div style="color:var(--muted2);font-size:.85rem">Chargement…</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:1rem">
+          <div class="card-header">
+            <span class="card-title">✏️ Contenu de la vitrine</span>
+            <span style="font-size:.75rem;color:var(--muted2)">Personnalisez chaque section</span>
+          </div>
+          <div style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem" id="vitrine-content-wrap">
+
+            <!-- Hero -->
+            <details open><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">🏠 Accroche (hero)</summary>
+              <div style="padding:.75rem 0 0;display:flex;flex-direction:column;gap:.6rem">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Bandeau eyebrow</label>
+                    <input class="form-control" id="vc-eyebrow" placeholder="Ex: Votre expert numérique">
+                  </div>
+                  <div class="form-group">
+                    <label>Titre hero <span style="color:var(--muted2);font-size:.72rem">(HTML ok, &lt;em&gt; pour accent)</span></label>
+                    <input class="form-control" id="vc-hero-title" placeholder="La technologie, &lt;em&gt;enfin simple&lt;/em&gt;">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Sous-titre hero</label>
+                  <textarea class="form-control" id="vc-hero-sub" rows="2" placeholder="Phrase d'accroche principale…"></textarea>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Bouton principal</label>
+                    <input class="form-control" id="vc-cta" placeholder="Demander un devis">
+                  </div>
+                  <div class="form-group">
+                    <label>Bouton secondaire</label>
+                    <input class="form-control" id="vc-cta2" placeholder="Nos services">
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <!-- Stats -->
+            <details><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">📊 Statistiques (3 chiffres clés)</summary>
+              <div style="padding:.75rem 0 0;display:flex;flex-direction:column;gap:.5rem" id="vc-stats-list">
+                ${[0,1,2].map(i=>`<div class="form-row" style="align-items:center">
+                  <div class="form-group"><label>Valeur ${i+1}</label><input class="form-control vc-stat-val" placeholder="+500"></div>
+                  <div class="form-group"><label>Libellé ${i+1}</label><input class="form-control vc-stat-lbl" placeholder="interventions"></div>
+                </div>`).join('')}
+              </div>
+            </details>
+
+            <!-- Services -->
+            <details><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">🛠️ Prestations / Services</summary>
+              <div style="padding:.75rem 0 0;display:flex;flex-direction:column;gap:.5rem" id="vc-services-list"></div>
+              <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+                <button class="btn btn-ghost btn-sm" onclick="vcAddService()">+ Ajouter</button>
+                <button class="btn btn-ghost btn-sm" style="color:var(--muted)" onclick="vcResetSection('services')">↺ Réinitialiser au thème</button>
+              </div>
+            </details>
+
+            <!-- Galerie -->
+            <details><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">🖼️ Galerie (vignettes)</summary>
+              <div style="padding:.75rem 0 0;display:flex;flex-direction:column;gap:.5rem" id="vc-gallery-list"></div>
+              <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+                <button class="btn btn-ghost btn-sm" onclick="vcAddGallery()">+ Ajouter</button>
+                <button class="btn btn-ghost btn-sm" style="color:var(--muted)" onclick="vcResetSection('gallery')">↺ Réinitialiser au thème</button>
+              </div>
+            </details>
+
+            <!-- À propos -->
+            <details><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">💬 À propos</summary>
+              <div style="padding:.75rem 0 0;display:flex;flex-direction:column;gap:.6rem">
+                <div class="form-row">
+                  <div class="form-group" style="max-width:100px">
+                    <label>Emoji</label>
+                    <input class="form-control" id="vc-about-emoji" placeholder="💡">
+                  </div>
+                  <div class="form-group">
+                    <label>Titre</label>
+                    <input class="form-control" id="vc-about-title" placeholder="Un partenaire de confiance">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Texte de présentation</label>
+                  <textarea class="form-control" id="vc-about-text" rows="3" placeholder="Décrivez votre activité, vos valeurs…"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Atouts (un par ligne, max 4)</label>
+                  <textarea class="form-control" id="vc-checks" rows="4" placeholder="Devis gratuit&#10;Intervention rapide&#10;Matériel garanti&#10;Conseils personnalisés"></textarea>
+                </div>
+              </div>
+            </details>
+
+            <!-- Actualités -->
+            <details><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">📰 Actualités / Articles</summary>
+              <div style="padding:.75rem 0 0">
+                <div id="vc-articles-list" style="display:flex;flex-direction:column;gap:.75rem"></div>
+                <button class="btn btn-ghost btn-sm" style="margin-top:.75rem" onclick="vcAddArticle()">+ Nouvel article</button>
+              </div>
+            </details>
+
+            <div style="display:flex;justify-content:flex-end;gap:.5rem;padding-top:.5rem;border-top:1px solid var(--border)">
+              <button class="btn btn-ghost btn-sm" onclick="loadVitrineContent()">Recharger</button>
+              <button class="btn btn-primary btn-sm" onclick="saveVitrineContent()">Enregistrer &amp; publier</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Aperçu</span></div>
+          <div style="padding:1rem 1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+            <div style="flex:1;font-size:.85rem;color:var(--muted2)">Votre site vitrine est accessible à l'adresse ci-dessous.</div>
+            <a id="ws-site-link" href="#" target="_blank" class="btn btn-ghost btn-sm" style="white-space:nowrap">Ouvrir le site →</a>
+          </div>
+        </div>
+
       </div>
 
       <!-- Tab 1 : Identité (Logo) -->
@@ -557,6 +764,10 @@ async function adminSettings() {
                 <label>Adresse</label>
                 <input class="form-control" id="b-address" value="${typeof BUSINESS !== 'undefined' ? BUSINESS.address : ''}">
               </div>
+              <div class="form-group" style="max-width:140px">
+                <label>Code postal</label>
+                <input class="form-control" id="b-zip" value="${typeof BUSINESS !== 'undefined' ? BUSINESS.zip||'' : ''}" placeholder="35000" maxlength="10">
+              </div>
               <div class="form-group">
                 <label>Ville</label>
                 <input class="form-control" id="b-city" value="${typeof BUSINESS !== 'undefined' ? BUSINESS.city : ''}">
@@ -599,7 +810,7 @@ async function adminSettings() {
               </div>
               <div class="form-group">
                 <label>Site web</label>
-                <input class="form-control" id="b-website" placeholder="ex: www.homegeek.fr" value="${typeof BUSINESS !== 'undefined' ? BUSINESS.website : ''}">
+                <input class="form-control" id="b-website" placeholder="ex: www.intervys.fr" value="${typeof BUSINESS !== 'undefined' ? BUSINESS.website : ''}">
               </div>
             </div>
             <div class="form-group">
@@ -739,195 +950,9 @@ async function adminSettings() {
 
       </div>
 
-      <!-- Tab 5 : Mon site -->
+
+      <!-- Tab 5 : Mises à jour -->
       <div id="stab-content-5" style="display:none">
-
-        <div class="card" style="margin-bottom:1rem">
-          <div class="card-header">
-            <span class="card-title">🎨 Thème de la vitrine</span>
-            <span style="font-size:.75rem;color:var(--muted2)">Choisissez l'apparence selon votre métier</span>
-          </div>
-          <div style="padding:1.5rem">
-            <div id="theme-picker" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem">
-              <div style="color:var(--muted2);font-size:.85rem">Chargement…</div>
-            </div>
-            <p style="font-size:.78rem;color:var(--muted2);margin-top:1rem;margin-bottom:0">
-              Le thème choisi s'applique à votre site public. Cliquez sur « Prévisualiser » pour le voir avant de publier.
-            </p>
-          </div>
-        </div>
-
-        <div class="card" style="margin-bottom:1rem">
-          <div class="card-header">
-            <span class="card-title">🌐 Vitrine publique</span>
-            <span style="font-size:.75rem;color:var(--muted2)">Ces informations s'affichent sur votre site</span>
-          </div>
-          <div style="padding:1.5rem">
-            <div class="form-row">
-              <div class="form-group">
-                <label>Nom du site / Enseigne</label>
-                <input class="form-control" id="ws-name" placeholder="HomeGeek">
-              </div>
-              <div class="form-group">
-                <label>Slogan</label>
-                <input class="form-control" id="ws-tagline" placeholder="Informatique · Électronique · Multimédia">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Description (paragraphe hero)</label>
-              <textarea class="form-control" id="ws-desc" rows="2" placeholder="Un expert passionné pour tous vos besoins numériques…"></textarea>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Téléphone</label>
-                <input class="form-control" id="ws-phone" placeholder="07 81 73 78 57">
-              </div>
-              <div class="form-group">
-                <label>Email public</label>
-                <input class="form-control" id="ws-email" placeholder="contact@homegeek.fr">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Zone d'intervention</label>
-                <input class="form-control" id="ws-zone" placeholder="Bretagne &amp; télé-assistance nationale">
-              </div>
-              <div class="form-group">
-                <label>URL de l'API Intervys <span style="color:var(--muted2);font-size:.75rem">(pour le site dynamique)</span></label>
-                <input class="form-control" id="ws-api-url" placeholder="https://app.homegeek.fr">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Texte "À propos"</label>
-              <textarea class="form-control" id="ws-about" rows="3" placeholder="Présentation, valeurs, approche…"></textarea>
-            </div>
-            <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:.5rem">
-              <button class="btn btn-ghost btn-sm" onclick="loadMonSiteSettings()">Recharger</button>
-              <button class="btn btn-primary btn-sm" onclick="saveMonSiteSettings()">Enregistrer &amp; publier</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Éditeur de contenu vitrine -->
-        <div class="card" style="margin-bottom:1rem">
-          <div class="card-header">
-            <span class="card-title">✏️ Contenu de la vitrine</span>
-            <span style="font-size:.75rem;color:var(--muted2)">Personnalisez chaque section de votre site</span>
-          </div>
-          <div style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem">
-
-            <!-- Hero -->
-            <details open><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">🏠 Accroche (hero)</summary>
-              <div style="padding:.75rem 0 0;display:flex;flex-direction:column;gap:.6rem">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Bandeau eyebrow</label>
-                    <input class="form-control" id="vc-eyebrow" placeholder="Ex: Votre expert numérique">
-                  </div>
-                  <div class="form-group">
-                    <label>Titre hero <span style="color:var(--muted2);font-size:.72rem">(HTML ok, &lt;em&gt; pour accent)</span></label>
-                    <input class="form-control" id="vc-hero-title" placeholder="La technologie, &lt;em&gt;enfin simple&lt;/em&gt;">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>Sous-titre hero</label>
-                  <textarea class="form-control" id="vc-hero-sub" rows="2" placeholder="Phrase d'accroche principale…"></textarea>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>Bouton principal</label>
-                    <input class="form-control" id="vc-cta" placeholder="Demander un devis">
-                  </div>
-                  <div class="form-group">
-                    <label>Bouton secondaire</label>
-                    <input class="form-control" id="vc-cta2" placeholder="Nos services">
-                  </div>
-                </div>
-              </div>
-            </details>
-
-            <!-- Stats -->
-            <details><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">📊 Statistiques (3 chiffres clés)</summary>
-              <div style="padding:.75rem 0 0;display:flex;flex-direction:column;gap:.5rem" id="vc-stats-list">
-                ${[0,1,2].map(i=>`<div class="form-row" style="align-items:center">
-                  <div class="form-group"><label>Valeur ${i+1}</label><input class="form-control vc-stat-val" placeholder="+500"></div>
-                  <div class="form-group"><label>Libellé ${i+1}</label><input class="form-control vc-stat-lbl" placeholder="interventions"></div>
-                </div>`).join('')}
-              </div>
-            </details>
-
-            <!-- Services -->
-            <details><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">🛠️ Prestations / Services</summary>
-              <div style="padding:.75rem 0 0;display:flex;flex-direction:column;gap:.5rem" id="vc-services-list"></div>
-              <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
-                <button class="btn btn-ghost btn-sm" onclick="vcAddService()">+ Ajouter</button>
-                <button class="btn btn-ghost btn-sm" style="color:var(--muted)" onclick="vcResetSection('services')">↺ Réinitialiser au thème</button>
-              </div>
-            </details>
-
-            <!-- Galerie -->
-            <details><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">🖼️ Galerie (vignettes)</summary>
-              <div style="padding:.75rem 0 0;display:flex;flex-direction:column;gap:.5rem" id="vc-gallery-list"></div>
-              <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
-                <button class="btn btn-ghost btn-sm" onclick="vcAddGallery()">+ Ajouter</button>
-                <button class="btn btn-ghost btn-sm" style="color:var(--muted)" onclick="vcResetSection('gallery')">↺ Réinitialiser au thème</button>
-              </div>
-            </details>
-
-            <!-- À propos -->
-            <details><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">💬 À propos</summary>
-              <div style="padding:.75rem 0 0;display:flex;flex-direction:column;gap:.6rem">
-                <div class="form-row">
-                  <div class="form-group" style="max-width:100px">
-                    <label>Emoji</label>
-                    <input class="form-control" id="vc-about-emoji" placeholder="💡">
-                  </div>
-                  <div class="form-group">
-                    <label>Titre</label>
-                    <input class="form-control" id="vc-about-title" placeholder="Un partenaire de confiance">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>Texte de présentation</label>
-                  <textarea class="form-control" id="vc-about-text" rows="3" placeholder="Décrivez votre activité, vos valeurs…"></textarea>
-                </div>
-                <div class="form-group">
-                  <label>Atouts (un par ligne, max 4)</label>
-                  <textarea class="form-control" id="vc-checks" rows="4" placeholder="Devis gratuit&#10;Intervention rapide&#10;Matériel garanti&#10;Conseils personnalisés"></textarea>
-                </div>
-              </div>
-            </details>
-
-            <!-- Actualités -->
-            <details><summary style="font-weight:600;cursor:pointer;padding:.5rem 0;color:var(--text)">📰 Actualités / Articles</summary>
-              <div style="padding:.75rem 0 0">
-                <div id="vc-articles-list" style="display:flex;flex-direction:column;gap:.75rem"></div>
-                <button class="btn btn-ghost btn-sm" style="margin-top:.75rem" onclick="vcAddArticle()">+ Nouvel article</button>
-              </div>
-            </details>
-
-            <div style="display:flex;justify-content:flex-end;gap:.5rem;padding-top:.5rem;border-top:1px solid var(--border)">
-              <button class="btn btn-ghost btn-sm" onclick="loadVitrineContent()">Recharger</button>
-              <button class="btn btn-primary btn-sm" onclick="saveVitrineContent()">Enregistrer &amp; publier</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title">Aperçu du lien</span></div>
-          <div style="padding:1rem 1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-            <div style="flex:1;font-size:.85rem;color:var(--muted2)">
-              Votre site vitrine est accessible à l'adresse ci-dessous. Partagez-le à vos clients.
-            </div>
-            <a id="ws-site-link" href="#" target="_blank" class="btn btn-ghost btn-sm" style="white-space:nowrap">
-              Ouvrir le site →
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab 6 : Mises à jour -->
-      <div id="stab-content-6" style="display:none">
         <div class="card" style="margin-bottom:1rem">
           <div class="card-header">
             <span class="card-title">🔄 Mises à jour</span>
@@ -945,10 +970,60 @@ async function adminSettings() {
             <details style="margin-top:.5rem">
               <summary style="font-size:.82rem;color:var(--muted2);cursor:pointer">⚙️ URL du manifeste</summary>
               <div style="margin-top:.75rem;display:flex;gap:.5rem">
-                <input class="form-control" id="upd-url" placeholder="https://homegeek.fr/Intervys/latest.json" style="flex:1;font-size:.83rem">
+                <input class="form-control" id="upd-url" placeholder="https://intervys.fr/intervio/latest.json" style="flex:1;font-size:.83rem">
                 <button class="btn btn-ghost btn-sm" onclick="saveUpdateUrl()">Enregistrer</button>
               </div>
             </details>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">📋 Nouveautés</span></div>
+          <div style="padding:1.5rem;display:flex;flex-direction:column;gap:1.5rem">
+
+            <div>
+              <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+                <span style="font-weight:700;font-size:.95rem;color:var(--text)">v1.9</span>
+                <span style="font-size:.72rem;color:var(--muted2);background:var(--bg2);padding:.15rem .6rem;border-radius:999px;border:1px solid var(--border)">Juin 2025</span>
+              </div>
+              <ul style="margin:0;padding-left:1.25rem;display:flex;flex-direction:column;gap:.4rem;font-size:.85rem;color:var(--muted2)">
+                <li><strong style="color:var(--text)">Identité unifiée</strong> — onglet Identité regroupe vitrine, thème, contenu et URL publique (suppression de l'onglet "Mon site")</li>
+                <li><strong style="color:var(--text)">Emails HTML brandés</strong> — tous les emails clients (nouveau message, changement de statut) sont désormais au format HTML avec bouton CTA vers le portail</li>
+                <li><strong style="color:var(--text)">URL du site configurable</strong> — saisie dans Identité, utilisée dans les emails et templates</li>
+                <li><strong style="color:var(--text)">Notifications en temps réel</strong> — badge messages non lus rafraîchi toutes les 30 s sur toutes les pages</li>
+              </ul>
+            </div>
+
+            <div>
+              <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+                <span style="font-weight:700;font-size:.95rem;color:var(--text)">v1.8</span>
+                <span style="font-size:.72rem;color:var(--muted2);background:var(--bg2);padding:.15rem .6rem;border-radius:999px;border:1px solid var(--border)">Juin 2025</span>
+              </div>
+              <ul style="margin:0;padding-left:1.25rem;display:flex;flex-direction:column;gap:.4rem;font-size:.85rem;color:var(--muted2)">
+                <li><strong style="color:var(--text)">Menu Avoirs</strong> — liste dédiée dans la sidebar, séparée des factures</li>
+                <li><strong style="color:var(--text)">Filigrane ANNULÉ</strong> — diagonal sur les factures ayant un avoir associé (aperçu + PDF)</li>
+                <li><strong style="color:var(--text)">Liens croisés facture ↔ avoir</strong> — bandeau de navigation entre document source et avoir</li>
+                <li><strong style="color:var(--text)">Avoir XML SUPER PDP</strong> — transmission CII/Factur-X corrigée pour affichage correct des montants dans le portail PA</li>
+                <li><strong style="color:var(--text)">Navigation avoir corrigée</strong> — retour vers la liste avoirs après édition/sauvegarde</li>
+                <li><strong style="color:var(--text)">PDF : marge haute réduite</strong> — moins d'espace blanc en haut pour économiser de la place</li>
+                <li><strong style="color:var(--text)">Mon espace PA configurable</strong> — URL du portail acheteur paramétrable dans Paramètres PA</li>
+                <li><strong style="color:var(--text)">Catalogue dans Tableau de bord</strong> — accès rapide déplacé dans la section principale de la sidebar</li>
+              </ul>
+            </div>
+
+            <div>
+              <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+                <span style="font-weight:700;font-size:.95rem;color:var(--text)">v1.7</span>
+                <span style="font-size:.72rem;color:var(--muted2);background:var(--bg2);padding:.15rem .6rem;border-radius:999px;border:1px solid var(--border)">Mai 2025</span>
+              </div>
+              <ul style="margin:0;padding-left:1.25rem;display:flex;flex-direction:column;gap:.4rem;font-size:.85rem;color:var(--muted2)">
+                <li><strong style="color:var(--text)">Avoirs (notes de crédit)</strong> — création, numérotation AVO-, référence à la facture d'origine</li>
+                <li><strong style="color:var(--text)">Transmission PA (Factur-X)</strong> — envoi CII XML aux plateformes de dématérialisation partenaires</li>
+                <li><strong style="color:var(--text)">Portail client</strong> — accès sécurisé par lien tokenisé, suivi des interventions et échanges de messages</li>
+                <li><strong style="color:var(--text)">Multi-thèmes vitrine</strong> — sélecteur de thème (Geek, Pro, etc.) avec prévisualisation</li>
+              </ul>
+            </div>
+
           </div>
         </div>
       </div>
@@ -956,6 +1031,10 @@ async function adminSettings() {
     </div>`;
 
   // Charger les données depuis PocketBase directement dans les champs
+  loadSiteUrlSetting();
+  loadMonSiteSettings();
+  loadSiteTheme();
+  loadVitrineContent();
   loadSmtpSettings();
   loadBillingForm();
   loadUiSettingsForm();
@@ -968,7 +1047,7 @@ async function loadBillingForm() {
     const bsItem = items.find(i => i.key === 'business_settings');
     if (!bsItem || !bsItem.value) return;
     const b = JSON.parse(bsItem.value);
-    const map = { name:'b-name', legal:'b-legal', address:'b-address', city:'b-city',
+    const map = { name:'b-name', legal:'b-legal', address:'b-address', zip:'b-zip', city:'b-city',
                   email:'b-email', phone:'b-phone', siret:'b-siret', tva_num:'b-tva-num',
                   iban:'b-iban', bic:'b-bic', rcs:'b-rcs', website:'b-website', tva:'b-tva' };
     for (const [key, id] of Object.entries(map)) {
@@ -1014,7 +1093,7 @@ async function loadUiSettingsForm() {
 }
 
 function showSettingsTab(n) {
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 6; i++) {
     const content = document.getElementById('stab-content-' + i);
     const tab = document.getElementById('stab-' + i);
     if (content) content.style.display = i === n ? 'block' : 'none';
@@ -1023,11 +1102,11 @@ function showSettingsTab(n) {
       tab.style.color = i === n ? 'var(--blue)' : 'var(--muted2)';
     }
   }
+  if (n === 0) { loadSiteUrlSetting(); loadMonSiteSettings(); loadSiteTheme(); loadVitrineContent(); }
   if (n === 1) loadServicesSettings();
   if (n === 2) loadSmtpSettings();
   if (n === 4) { loadAdminProfile(); loadTeamSettings(); }
-  if (n === 5) { loadMonSiteSettings(); loadSiteTheme(); loadVitrineContent(); }
-  if (n === 6) loadUpdateTab();
+  if (n === 5) loadUpdateTab();
 }
 
 // ── Mon site : chargement & sauvegarde des settings vitrine ──
@@ -1349,7 +1428,7 @@ async function saveVitrineContent() {
 // ── Thème de la vitrine (clé settings : hg_site_theme) ──
 const SITE_THEMES = [
   { key:'custom',      emoji:'✨',  label:'Mon thème',            desc:'Vos couleurs personnalisées.', mine:true },
-  { key:'default',     emoji:'💻',  label:'Tech',                 desc:'Dépannage, réseau, multimédia (HomeGeek).' },
+  { key:'default',     emoji:'💻',  label:'Tech',                 desc:'Dépannage, réseau, multimédia (Intervys).' },
   { key:'jardinier',   emoji:'🌿',  label:'Jardinier',            desc:'Paysagiste, entretien d\'espaces verts.' },
   { key:'plomberie',   emoji:'🔧',  label:'Plombier',             desc:'Plomberie, chauffage, dépannage.' },
   { key:'menuiserie',  emoji:'🪵',  label:'Menuisier',            desc:'Bois, portes, fenêtres, agencement.' },
@@ -1359,7 +1438,7 @@ const SITE_THEMES = [
 ];
 let _currentSiteTheme = 'default';
 
-// URL publique de la vitrine (app.homegeek.fr → homegeek.fr ; sinon même origine)
+// URL publique de la vitrine (localhost → intervys.fr ; sinon même origine)
 function _vitrineBase() {
   return location.origin.replace('://app.', '://').replace('://admin.', '://');
 }
@@ -1582,6 +1661,37 @@ async function saveIdentitySettings() {
   } catch { toast('Erreur sauvegarde', 'error'); }
 }
 
+async function loadSiteUrlSetting() {
+  try {
+    const r = await api.req('GET', '/api/collections/settings/records?filter=' + encodeURIComponent("key='site_url' || key='hg_logo_url' || key='hg_app_url'") + '&perPage=5');
+    for (const item of r?.items || []) {
+      if (item.key === 'site_url') { const el = document.getElementById('setting-site-url'); if (el) el.value = item.value || ''; }
+      if (item.key === 'hg_app_url') { const el = document.getElementById('setting-app-url'); if (el) el.value = item.value || ''; }
+      if (item.key === 'hg_logo_url') { const el = document.getElementById('setting-logo-url'); if (el) el.value = item.value || ''; }
+    }
+  } catch(e) {}
+}
+
+async function saveSiteUrl() {
+  const pairs = [
+    ['site_url',    document.getElementById('setting-site-url')?.value?.trim() || ''],
+    ['hg_app_url',  document.getElementById('setting-app-url')?.value?.trim() || ''],
+    ['hg_logo_url', document.getElementById('setting-logo-url')?.value?.trim() || ''],
+  ];
+  try {
+    const r = await api.req('GET', '/api/collections/settings/records?filter=' + encodeURIComponent("key='site_url' || key='hg_logo_url' || key='hg_app_url'") + '&perPage=5');
+    const map = {};
+    for (const it of r?.items || []) map[it.key] = it.id;
+    await Promise.all(pairs.map(([k, v]) => {
+      if (!v) return;
+      return map[k]
+        ? api.req('PATCH', `/api/collections/settings/records/${map[k]}`, { value: v })
+        : api.req('POST', '/api/collections/settings/records', { key: k, value: v });
+    }));
+    toast('Paramètres enregistrés', 'success');
+  } catch(e) { toast('Erreur', 'error'); }
+}
+
 async function loadSmtpSettings() {
   const wrap = document.getElementById('smtp-form-wrap');
   if (!wrap) return;
@@ -1727,6 +1837,7 @@ async function saveBillingSettings() {
     name:    document.getElementById('b-name').value.trim(),
     legal:   document.getElementById('b-legal').value.trim(),
     address: document.getElementById('b-address').value.trim(),
+    zip:     document.getElementById('b-zip').value.trim(),
     city:    document.getElementById('b-city').value.trim(),
     email:   document.getElementById('b-email').value.trim(),
     phone:   document.getElementById('b-phone').value.trim(),
@@ -1796,7 +1907,7 @@ async function uploadLogoSettings() {
 
       bar.style.width = '100%';
       // Mettre à jour tous les logos de la page
-      document.querySelectorAll('img[src="/img/logo.png"], img[alt="Intervys"]').forEach(img => img.src = b64);
+      document.querySelectorAll('img[src="/img/logo.png"], img[alt="Intervio"]').forEach(img => img.src = b64);
       toast('Logo mis à jour — rechargez pour appliquer partout', 'success', 4000);
       setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 1000);
     };
@@ -1913,19 +2024,37 @@ async function deleteService(key) {
   loadServicesSettings();
 }
 
+async function openPaPortal() {
+  try {
+    const recs = await api.req('GET',
+      '/api/collections/settings/records?filter=' + encodeURIComponent("key='pa_url'||key='pa_portal_url'") + '&perPage=5'
+    );
+    let paUrl = '', paPortalUrl = '';
+    for (const r of (recs?.items||[])) {
+      if (r.key === 'pa_url')        paUrl        = r.value||'';
+      if (r.key === 'pa_portal_url') paPortalUrl  = r.value||'';
+    }
+    if (!paUrl && !paPortalUrl) { toast('URL PA non configurée — allez dans Paramètres PA', 'warn'); paSettings(); return; }
+    const portalUrl = paPortalUrl || (paUrl.includes('superpdp') ? 'https://app.superpdp.tech'
+      : paUrl.replace(/^(https?:\/\/)api\./, '$1').replace(/\/v\d.*$/, ''));
+    window.open(portalUrl, '_blank', 'noopener');
+  } catch(e) { toast('Erreur : ' + (e.message || e), 'error'); }
+}
+
 async function paSettings() {
   if (!requireAdmin()) return;
   renderAdminLayout("Paramètres PA", '<div class="spinner"></div>');
 
-  let paUrl = '', clientId = '', clientSecret = '', paStatus = '';
+  let paUrl = '', clientId = '', clientSecret = '', paPortalUrl = '', paStatus = '';
   try {
     const recs = await api.req('GET',
       '/api/collections/settings/records?filter=' + encodeURIComponent("key~'pa_'") + '&perPage=10'
     ).catch(()=>({items:[]}));
     for (const r of (recs.items||[])) {
-      if (r.key === 'pa_url')           paUrl         = r.value||'';
-      if (r.key === 'pa_client_id')     clientId      = r.value||'';
-      if (r.key === 'pa_client_secret') clientSecret  = r.value||'';
+      if (r.key === 'pa_url')           paUrl        = r.value||'';
+      if (r.key === 'pa_client_id')     clientId     = r.value||'';
+      if (r.key === 'pa_client_secret') clientSecret = r.value||'';
+      if (r.key === 'pa_portal_url')    paPortalUrl  = r.value||'';
     }
     if (paUrl && clientId) paStatus = '✅ PA configurée';
   } catch(e) {}
@@ -1934,7 +2063,7 @@ async function paSettings() {
     <div class="card card-table">
       <div class="card-header"><span class="card-title">Plateforme Agréée — AFNOR XP Z12-013</span></div>
       <p style="color:var(--muted);font-size:.84rem;margin-bottom:1.5rem;line-height:1.7">
-        Intervys implémente la norme <strong style="color:var(--text)">AFNOR XP Z12-013</strong> —
+        Intervio implémente la norme <strong style="color:var(--text)">AFNOR XP Z12-013</strong> —
         le standard universel OD ↔ PA. Compatible avec toute PA immatriculée
         qui respecte ce standard (Abby, Tiime, Pennylane, Chorus Pro…).
         <br><br>
@@ -1948,6 +2077,15 @@ async function paSettings() {
           value="${paUrl}">
         <div style="font-size:.74rem;color:var(--muted);margin-top:4px">
           Fournie par votre PA lors de l'inscription. Ex : https://api.votre-pa.fr/v1/e-invoice
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>URL Mon espace PA <span style="font-size:.75rem;color:var(--muted)">(lien du menu)</span></label>
+        <input class="form-control" id="pa-portal-url" placeholder="https://app.votre-pa.fr"
+          value="${paPortalUrl}">
+        <div style="font-size:.74rem;color:var(--muted);margin-top:4px">
+          URL du portail web de votre PA (page de connexion / tableau de bord client)
         </div>
       </div>
 
@@ -1965,17 +2103,41 @@ async function paSettings() {
 
       ${paStatus ? `<div style="color:var(--green);font-size:.85rem;margin-bottom:1rem">${paStatus}</div>` : ''}
 
-      <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.5rem">
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem">
         <button class="btn btn-primary" onclick="savePaSettings()">Enregistrer</button>
         <button class="btn btn-ghost"   onclick="testPaConnection()">Tester la connexion</button>
+        <button class="btn btn-ghost"   onclick="probePaEndpoints()">🔍 Détecter endpoints</button>
+        <button class="btn btn-ghost"   onclick="testPaInvoiceFormat()">🧪 Tester format</button>
       </div>
+
+      ${paUrl ? (() => {
+        const portalUrl = paUrl.includes('superpdp') ? 'https://app.superpdp.tech'
+          : paUrl.replace(/^(https?:\/\/)api\./, '$1').replace(/\/v\d.*$/, '');
+        const paName = paUrl.includes('superpdp') ? 'SUPER PDP'
+          : paUrl.includes('abby') ? 'Abby'
+          : paUrl.includes('tiime') ? 'Tiime'
+          : paUrl.includes('pennylane') ? 'Pennylane'
+          : 'Portail PA';
+        return `<a href="${portalUrl}" target="_blank" rel="noopener"
+          style="display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1rem;
+            background:var(--bg3);border-radius:var(--r2);color:var(--blue);
+            text-decoration:none;font-size:.84rem;font-weight:500;margin-bottom:1rem;
+            border:1px solid var(--border);transition:opacity .15s"
+          onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">
+          🔗 Accéder à ${paName}
+          <span style="font-size:.75rem;color:var(--muted);font-weight:400">— factures reçues, envoyées, sessions</span>
+          <span style="font-size:.7rem;color:var(--muted);opacity:.6">↗</span>
+        </a>`;
+      })() : ''}
+
+      <div id="pa-probe-result" style="display:none;margin-top:1rem;padding:1rem;background:var(--bg3);border-radius:var(--r2);font-size:.78rem;font-family:monospace;white-space:pre-wrap;color:var(--text);max-height:300px;overflow:auto"></div>
 
       <div style="padding:1rem;background:var(--bg3);border-radius:var(--r2);font-size:.8rem;color:var(--muted);line-height:2">
         <strong style="color:var(--text)">Workflow automatique lors d'une transmission :</strong><br>
         1. Clic "📤 Transmettre PA" sur une facture<br>
-        2. Intervys génère le <strong>PDF Factur-X</strong> (EN 16931) en base64<br>
+        2. Intervio génère le <strong>PDF Factur-X</strong> (EN 16931) en base64<br>
         3. <strong>OAuth2</strong> → token d'accès auprès de votre PA<br>
-        4. <strong>POST /flows</strong> → envoi du Factur-X à la PA (norme Z12-013)<br>
+        4. <strong>POST /v1.beta/invoices</strong> → envoi du CII XML à la PA (norme Z12-013)<br>
         5. La PA route vers la PA du client · <strong>flowId</strong> stocké sur la facture
       </div>
 
@@ -1994,6 +2156,7 @@ async function savePaSettings() {
     pa_url:           document.getElementById('pa-url')?.value?.trim(),
     pa_client_id:     document.getElementById('pa-client-id')?.value?.trim(),
     pa_client_secret: document.getElementById('pa-client-secret')?.value?.trim(),
+    pa_portal_url:    document.getElementById('pa-portal-url')?.value?.trim(),
   };
   if (!vals.pa_url) return toast("Entrez l'URL de la PA", "warn");
   try {
@@ -2017,18 +2180,65 @@ async function savePaSettings() {
 }
 
 async function testPaConnection() {
-  const paUrl = document.getElementById('pa-url')?.value?.trim();
-  if (!paUrl) return toast("Entrez l'URL de la PA d'abord", 'warn');
-  toast('Test healthcheck...', 'info', 4000);
+  const paUrl        = document.getElementById('pa-url')?.value?.trim();
+  const clientId     = document.getElementById('pa-client-id')?.value?.trim();
+  const clientSecret = document.getElementById('pa-client-secret')?.value?.trim();
+  if (!paUrl)        return toast("Entrez l'URL de la PA d'abord", 'warn');
+  if (!clientId)     return toast("Entrez le Client ID", 'warn');
+  if (!clientSecret) return toast("Entrez le Client Secret", 'warn');
+  toast('Test OAuth2 en cours...', 'info', 5000);
   try {
-    const r = await fetch(paUrl.replace(/\/$/, '') + '/healthcheck', {
-      method: 'GET', headers: { 'Accept': 'application/json' }
-    });
-    if (r.ok) toast('PA accessible (healthcheck OK)', 'success');
-    else      toast('PA répond mais avec erreur ' + r.status, 'warn');
+    const r = await api.req('POST', '/api/test-pa', { pa_url: paUrl, client_id: clientId, client_secret: clientSecret });
+    if (r.ok) toast(r.message || 'Connexion PA réussie', 'success');
+    else      toast(r.message || 'Échec connexion PA', 'warn');
   } catch(e) {
-    toast("PA inaccessible — vérifiez l'URL", "error");
+    toast('Erreur test PA : ' + (e.message || e), 'error');
   }
+}
+
+async function testPaInvoiceFormat() {
+  const box = document.getElementById('pa-probe-result');
+  if (!box) return;
+  const invoiceId = prompt('ID de la facture à diagnostiquer (laisse vide pour tester uniquement le CII SUPER PDP) :', 'z08j3w1potak92t');
+  box.style.display = 'block';
+  box.textContent = 'Diagnostic en cours (~30s)...';
+  try {
+    const r = await api.req('POST', '/api/test-pa-invoice', { invoice_id: invoiceId || '' });
+    let out = `Token: ${r.token ? 'OK' : 'FAIL'}\n\n`;
+    if (r.seller_section) out += `═══ SELLER (référence SUPER PDP) ═══\n${r.seller_section}\n\n`;
+    if (r.buyer_section)  out += `═══ BUYER (référence SUPER PDP) ═══\n${r.buyer_section}\n\n`;
+    if (r.cii_test_xml)   out += `═══ CII SUPER PDP ═══\n${r.cii_test_xml.slice(0, 2000)}\n\n`;
+    if (r.our_xml_preview) out += `═══ NOTRE XML (aperçu) ═══\n${r.our_xml_preview}\n\n`;
+    if (r.validation) {
+      const v = r.validation;
+      out += `═══ VALIDATION ═══\nHTTP ${v.status}\n${v.body || v.error || ''}\n\n`;
+    }
+    if (r.our_submit) {
+      const s = r.our_submit;
+      out += `═══ SOUMISSION ═══\nHTTP ${s.status}\n${s.body || s.error || ''}\n`;
+    }
+    if (r.our_xml_read) out += `\nErreur lecture XML: ${r.our_xml_read}`;
+    box.textContent = out;
+  } catch(e) { box.textContent = 'Erreur : ' + (e.message || e); }
+}
+
+async function probePaEndpoints() {
+  const box = document.getElementById('pa-probe-result');
+  if (!box) return;
+  box.style.display = 'block';
+  box.textContent = 'Probe en cours (~15s)...';
+  try {
+    const r = await api.req('POST', '/api/probe-pa', {});
+    if (!r.token) { box.textContent = 'Échec OAuth2 :\n' + JSON.stringify(r, null, 2); return; }
+    let out = `Token OK | Base: ${r.base}\n\n`;
+    for (const res of (r.results || [])) {
+      const ok = res.status && res.status !== 404;
+      out += `${ok ? '✅' : '❌'} ${res.path.padEnd(26)} → `;
+      out += res.error ? 'ERR: ' + res.error : `HTTP ${res.status}  ${(res.body||'').slice(0,120)}`;
+      out += '\n';
+    }
+    box.textContent = out;
+  } catch(e) { box.textContent = 'Erreur : ' + (e.message || e); }
 }
 
 
@@ -2221,25 +2431,23 @@ function interventionTable(items, isArchive = false) {
 
   // Vue tableau pour desktop
   return `<div class="table-wrap"><table>
-    <thead><tr><th>Titre</th><th>Client</th><th>Service</th><th>Statut</th><th>Priorité</th><th style="text-align:center;font-size:.75rem">Devis</th><th style="text-align:center;font-size:.75rem">Factures</th><th>Mise à jour</th><th style="text-align:center;font-size:.75rem">Actions</th></tr></thead>
+    <thead><tr><th>Titre</th><th>Client</th><th>Service</th><th>Statut</th><th>Priorité</th><th style="text-align:center;font-size:.75rem">Docs</th><th>Mise à jour</th><th style="text-align:center;font-size:.75rem">Actions</th></tr></thead>
     <tbody>
     ${items.map(i => {
       const _u = (window._usersMap||{})[i.user];
       const _lk2 = (window._linksMap||{})[i.id];
       const clientName = i.expand?.user?.name || i.expand?.user?.email || (_u ? (_u.name||_u.email) : '') || (_lk2 ? _lk2.client_name||_lk2.client_email : '') || '<em style="color:var(--muted)">Lien accès</em>';
       return `<tr style="cursor:pointer" onclick="Router.navigate('/admin/intervention/${i.id}')">
-        <td style="font-weight:600;max-width:220px">
+        <td style="font-weight:600;max-width:170px">
           <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.title}</div>
-          ${i.device_info ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px">${i.device_info}</div>` : ''}
+          ${i.device_info ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.device_info}</div>` : ''}
         </td>
-        <td style="color:var(--muted2);font-size:.88rem">${clientName}</td>
-        <td style="font-size:.8rem">${SERVICE_LABELS[i.service]||i.service}</td>
-        <td>${statusBadge(i.status)}</td>
-        <td>${priorityBadge(i.priority||'normale')}</td>
-        <td style="text-align:center;font-size:.8rem" onclick="event.stopPropagation()">
+        <td style="color:var(--muted2);font-size:.88rem;white-space:nowrap">${clientName}</td>
+        <td style="font-size:.8rem;white-space:nowrap">${SERVICE_LABELS[i.service]||i.service}</td>
+        <td style="white-space:nowrap">${statusBadge(i.status)}</td>
+        <td style="white-space:nowrap">${priorityBadge(i.priority||'normale')}</td>
+        <td style="text-align:center;font-size:.8rem;white-space:nowrap" onclick="event.stopPropagation()">
           <span id="quotes-count-${i.id}" style="color:var(--muted)">—</span>
-        </td>
-        <td style="text-align:center;font-size:.8rem" onclick="event.stopPropagation()">
           <span id="invoices-count-${i.id}" style="color:var(--muted)">—</span>
         </td>
         <td style="color:var(--muted);font-size:.8rem;white-space:nowrap">${timeAgo(i.updated)}</td>
@@ -2327,7 +2535,7 @@ async function adminInterventionDetail(id) {
               <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .9rem;background:var(--bg3)">
                 <span style="font-size:.78rem;color:var(--muted)">Client</span>
                 <span style="font-size:.85rem;font-weight:600">
-                  ${userInfo ? `${userInfo.name||'—'}${userInfo.phone?` <span style="color:var(--blue);font-weight:400;font-size:.8rem">· ${userInfo.phone}</span>`:''}` : accessLink ? `${accessLink.client_name||'—'} <span style="color:var(--muted);font-size:.75rem">🔗</span>` : '—'}
+                  ${userInfo ? `${userInfo.name||'—'}${userInfo.phone?` <span style="color:var(--blue);font-weight:400;font-size:.8rem">· ${userInfo.phone}</span>`:''}${userInfo.email?` <span style="color:var(--muted2);font-weight:400;font-size:.8rem">· ${userInfo.email}</span>`:''}` : accessLink ? `${accessLink.client_name||'—'} <span style="color:var(--muted);font-size:.75rem">🔗</span>` : '—'}
                 </span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .9rem;background:var(--bg3)">
@@ -3375,6 +3583,8 @@ function ico(name) {
     archive:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
     send:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
     eye:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+    refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg>',
+    catalog:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="16" y2="11"/><line x1="9" y1="15" x2="13" y2="15"/></svg>',
   };
   return icons[name] || '';
 }
@@ -3391,7 +3601,7 @@ async function loadUpdateTab() {
     const verEl = document.getElementById('upd-current');
     if (verEl) verEl.textContent = map.app_version || '1.0.0';
     const urlEl = document.getElementById('upd-url');
-    if (urlEl) urlEl.value = map.app_update_url || 'https://homegeek.fr/Intervys/latest.json';
+    if (urlEl) urlEl.value = map.app_update_url || 'https://intervys.fr/intervio/latest.json';
   } catch(e) { console.warn('loadUpdateTab', e); }
 }
 

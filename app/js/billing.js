@@ -1,13 +1,14 @@
-// ── billing.js ── Module Devis & Facturation Intervys
+﻿// ── billing.js ── Module Devis & Facturation Intervio
 
 // ═══════════════════════════════════════════
 // CONFIG (à adapter dans admin Settings)
 // ═══════════════════════════════════════════
 const BUSINESS = {
   name:    "",
-  brand:   typeof SITE_NAME !== "undefined" ? SITE_NAME : "Intervys",
+  brand:   typeof SITE_NAME !== "undefined" ? SITE_NAME : "Intervio",
   legal:   "",
   address: "",
+  zip:     "",
   city:    "",
   email:   "",
   phone:   "",
@@ -17,7 +18,8 @@ const BUSINESS = {
   tva_num: "",
   iban:    "",
   bic:     "",
-  tva:     "franchise",
+  tva:          "franchise",
+  payment_days: 30,
 };
 
 // Charge les réglages métier persistés dans localStorage
@@ -31,9 +33,9 @@ const BUSINESS = {
 let SIGNATURE_B64 = localStorage.getItem('signature_b64') || '';
 
 const QUOTE_STATUS   = { brouillon:"Brouillon", envoye:"Envoyé", accepte:"Accepté", refuse:"Refusé", expire:"Expiré", archive:"Archivé" };
-const INVOICE_STATUS = { brouillon:"Brouillon", envoye:"Envoyé", paye:"Payé", annule:"Annulé" };
+const INVOICE_STATUS = { brouillon:"Brouillon", envoye:"Envoyé", paye:"Payé", annule:"Annulé", transmis_pa:"Envoi PA...", transmis:"Transmis PA" };
 const QUOTE_COLORS   = { brouillon:"var(--muted)", envoye:"var(--blue)", accepte:"var(--green)", refuse:"var(--red)", expire:"var(--orange)", archive:"var(--muted)" };
-const INVOICE_COLORS = { brouillon:"var(--muted)", envoye:"var(--blue)", paye:"var(--green)", annule:"var(--red)" };
+const INVOICE_COLORS = { brouillon:"var(--muted)", envoye:"var(--blue)", paye:"var(--green)", annule:"var(--red)", transmis_pa:"var(--orange)", transmis:"var(--green)" };
 
 // ═══════════════════════════════════════════
 // API HELPERS
@@ -178,12 +180,25 @@ async function quotesList(statusFilter = '') {
   } catch(e) { toast('Erreur', 'error'); }
 }
 
+// ── Liste avoirs ──
+async function avoirsList() {
+  if (!requireAdmin()) return;
+  renderAdminLayout('Avoirs', '<div class="spinner"></div>');
+  try {
+    const data = await api.req('GET', `/api/collections/invoices/records?filter=${encodeURIComponent("doc_type='avoir'")}&sort=-created&perPage=200`);
+    document.getElementById('page-content').innerHTML = `
+      <div class="card">${docTable(data.items||[], 'invoice')}</div>
+    `;
+  } catch(e) { toast('Erreur', 'error'); }
+}
+
 // ── Liste factures ──
 async function invoicesList(statusFilter = '') {
   if (!requireAdmin()) return;
   renderAdminLayout('Factures', '<div class="spinner"></div>');
   try {
-    const filter = statusFilter ? `status="${statusFilter}"` : '';
+    const base   = `doc_type!='avoir'`;
+    const filter = statusFilter ? `${base} && status="${statusFilter}"` : base;
     const data   = await getDocs('invoice', filter);
     document.getElementById('page-content').innerHTML = `
       <div style="display:flex;gap:.75rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center">
@@ -289,7 +304,7 @@ function docForm(type, doc = {}) {
   const statuses = isInv ? INVOICE_STATUS : QUOTE_STATUS;
   return `
   <div style="display:flex;gap:.75rem;margin-bottom:1.5rem;align-items:center;flex-wrap:wrap">
-    <button class="btn btn-ghost btn-sm" onclick="history.back()">← Retour</button>
+    <button class="btn btn-ghost btn-sm" onclick="${doc.doc_type==='avoir' ? 'avoirsList()' : isInv ? 'invoicesList()' : 'quotesList()'}">← Retour</button>
     <code style="font-family:var(--FM);color:var(--blue);background:var(--bg3);padding:4px 10px;border-radius:4px">${doc.number||''}</code>
     <div style="flex:1"></div>
     <button class="btn btn-ghost btn-sm" onclick="previewDoc('${type}')">Aperçu</button>
@@ -304,10 +319,34 @@ function docForm(type, doc = {}) {
       <div class="card-header"><span class="card-title">👤 Client</span>
         <button class="btn btn-ghost btn-sm" onclick="pickClientForDoc()">Choisir client</button>
       </div>
-      <div class="form-group"><label>Nom *</label><input class="form-control" id="doc-client-name" value="${doc.client_name||''}"></div>
-      <div class="form-group"><label>Email</label><input class="form-control" id="doc-client-email" value="${doc.client_email||''}"></div>
-      <div class="form-group"><label>Téléphone</label><input class="form-control" id="doc-client-phone" value="${doc.client_phone||''}"></div>
-      <div class="form-group"><label>Adresse</label><textarea class="form-control" id="doc-client-address" rows="3">${doc.client_address||''}</textarea></div>
+
+      <div style="display:flex;gap:.5rem;margin-bottom:1.25rem">
+        <button id="btn-particulier" class="btn btn-sm ${!doc.client_siret ? 'btn-primary' : 'btn-ghost'}" onclick="setClientType('particulier')">Particulier</button>
+        <button id="btn-pro"         class="btn btn-sm ${doc.client_siret  ? 'btn-primary' : 'btn-ghost'}" onclick="setClientType('professionnel')">Professionnel</button>
+      </div>
+
+      <div class="form-group">
+        <label id="lbl-client-name">${doc.client_siret ? 'Raison sociale *' : 'Nom *'}</label>
+        <input class="form-control" id="doc-client-name" value="${doc.client_name||''}">
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input class="form-control" id="doc-client-email" value="${doc.client_email||''}"></div>
+        <div class="form-group"><label>Téléphone</label><input class="form-control" id="doc-client-phone" value="${doc.client_phone||''}"></div>
+      </div>
+      <div class="form-group"><label>Adresse postale</label><textarea class="form-control" id="doc-client-address" rows="2" placeholder="Commencez à taper votre adresse...">${doc.client_address||''}</textarea></div>
+
+      <div id="client-pro-fields" style="display:${doc.client_siret ? 'block' : 'none'}">
+        <div class="form-row">
+          <div class="form-group">
+            <label>SIREN</label>
+            <input class="form-control" id="doc-client-siret" placeholder="123456789" maxlength="9" value="${doc.client_siret||''}">
+          </div>
+          <div class="form-group">
+            <label>N° TVA intracom <span style="color:var(--muted);font-weight:400">(optionnel)</span></label>
+            <input class="form-control" id="doc-client-tva" placeholder="FR12345678901" value="${doc.client_tva||''}">
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Paramètres doc -->
@@ -389,7 +428,7 @@ function docForm(type, doc = {}) {
 
   <!-- Boutons bas -->
   <div style="display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap">
-    <button class="btn btn-ghost" onclick="history.back()">Annuler</button>
+    <button class="btn btn-ghost" onclick="${doc.doc_type==='avoir' ? 'avoirsList()' : isInv ? 'invoicesList()' : 'quotesList()'}">Annuler</button>
     <button class="btn btn-primary" onclick="submitDoc('${type}','${doc.id||''}')">Enregistrer</button>
     <button class="btn btn-ghost" onclick="previewDoc('${type}')">Aperçu</button>
     ${doc.id ? `<button class="btn btn-primary" onclick="sendDocByEmail('${doc.id}','${type}')">Envoyer par email</button>` : ''}
@@ -459,6 +498,22 @@ function updateTotals() {
   });
 }
 
+function setClientType(type) {
+  const pro = type === 'professionnel';
+  const fields = document.getElementById('client-pro-fields');
+  const btnP   = document.getElementById('btn-particulier');
+  const btnPro = document.getElementById('btn-pro');
+  const lbl    = document.getElementById('lbl-client-name');
+  if (fields) fields.style.display = pro ? 'block' : 'none';
+  if (btnP)   btnP.className   = 'btn btn-sm ' + (pro ? 'btn-ghost'   : 'btn-primary');
+  if (btnPro) btnPro.className = 'btn btn-sm ' + (pro ? 'btn-primary' : 'btn-ghost');
+  if (lbl)    lbl.textContent  = pro ? 'Raison sociale *' : 'Nom *';
+  if (!pro) {
+    const s = document.getElementById('doc-client-siret'); if (s) s.value = '';
+    const t = document.getElementById('doc-client-tva');   if (t) t.value = '';
+  }
+}
+
 // ── Choisir un client existant ──
 async function pickClientForDoc() {
   const users = await api.getUsers().catch(() => ({items:[]}));
@@ -466,8 +521,8 @@ async function pickClientForDoc() {
     <div class="modal-header"><span class="modal-title">👤 Choisir un client</span><button class="modal-close">×</button></div>
     <div style="display:flex;flex-direction:column;gap:.5rem;max-height:400px;overflow-y:auto">
       ${users.items.map(u => `
-        <div class="inv-card" style="cursor:pointer" onclick="fillClientFromUser('${u.id}','${(u.name||'').replace(/'/g,"\\'")}','${u.email||''}','${u.phone||''}');closeModal()">
-          <div style="font-weight:700">${u.name||u.email}</div>
+        <div class="inv-card" style="cursor:pointer" onclick="fillClientFromUser(${JSON.stringify({name:u.name||'',email:u.email||'',phone:u.phone||'',address:u.address||'',is_pro:!!u.is_pro,company:u.company||'',siren:u.siren||'',tva_num:u.tva_num||''})});closeModal()">
+          <div style="font-weight:700">${u.is_pro && u.company ? u.company : (u.name||u.email)} ${u.is_pro ? '<span style="font-size:.72rem;color:var(--blue);font-weight:400">PRO</span>' : ''}</div>
           <div style="font-size:.8rem;color:var(--muted2)">${u.email}</div>
           ${u.phone ? `<div style="font-size:.78rem;color:var(--muted)">📞 ${u.phone}</div>` : ''}
         </div>
@@ -476,11 +531,17 @@ async function pickClientForDoc() {
   `);
 }
 
-function fillClientFromUser(id, name, email, phone) {
-  const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
-  set('doc-client-name', name);
-  set('doc-client-email', email);
-  set('doc-client-phone', phone);
+function fillClientFromUser(u) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  setClientType(u.is_pro ? 'professionnel' : 'particulier');
+  set('doc-client-name',   u.is_pro && u.company ? u.company : u.name);
+  set('doc-client-email',  u.email);
+  set('doc-client-phone',  u.phone);
+  set('doc-client-address', u.address);
+  if (u.is_pro) {
+    set('doc-client-siret', u.siren);
+    set('doc-client-tva',   u.tva_num);
+  }
 }
 
 // ── Sauvegarder ──
@@ -497,6 +558,8 @@ async function submitDoc(type, existingId = '') {
     client_email:    get('doc-client-email'),
     client_phone:    get('doc-client-phone'),
     client_address:  get('doc-client-address'),
+    client_siret:    get('doc-client-siret'),
+    client_tva:      get('doc-client-tva'),
     items:           _items,
     subtotal:        totals.subtotal,
     tax_rate:        BUSINESS.tva === 'franchise' ? 0 : parseFloat(BUSINESS.tva),
@@ -532,7 +595,7 @@ async function submitDoc(type, existingId = '') {
     if (data.status === 'envoye' && data.client_email) {
       await sendDocEmail(doc, type);
     }
-    isInv ? invoicesList() : quotesList();
+    data.doc_type === 'avoir' ? avoirsList() : isInv ? invoicesList() : quotesList();
   } catch(e) { console.error(e); toast('Erreur enregistrement', 'error'); }
 }
 
@@ -565,6 +628,7 @@ async function convertToInvoice(quoteId) {
       client_address: quote.client_address,
       items:          quote.items || [],
       notes:          quote.notes,
+      intervention:   quote.intervention,
       number,
       status:         'brouillon',
       quote_id:       quoteId,
@@ -593,13 +657,13 @@ async function viewDoc(type, id) {
     window._currentDoc = doc;
     renderAdminLayout(doc.number, `
       <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center">
-        <button class="btn btn-ghost btn-sm" onclick="history.back()">← Retour</button>
+        <button class="btn btn-ghost btn-sm" onclick="${doc.doc_type==='avoir' ? 'avoirsList()' : isInv ? 'invoicesList()' : 'quotesList()'}">← Retour</button>
         <code style="font-family:var(--FM);color:var(--blue);background:var(--bg3);padding:4px 12px;border-radius:4px">${doc.number}</code>
         <span style="color:${colors[doc.status]};font-size:.82rem;font-weight:600">${statuses[doc.status]||doc.status}</span>
         <div style="flex:1"></div>
 
         <!-- Actions secondaires -->
-        <button class="btn btn-ghost btn-sm" onclick="${isInv ? `downloadFacturXPdf(_currentDoc,'invoice')` : `downloadDocPdf('${id}','${type}')`}" style="display:inline-flex;align-items:center;gap:5px">${ico('doc')} ${isInv ? 'Factur-X PDF' : 'PDF'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="${isInv ? `downloadFacturXPdf(_currentDoc,'invoice')` : `downloadDocPdf('${id}','${type}')`}" style="display:inline-flex;align-items:center;gap:5px">${ico('doc')} PDF</button>
         <button class="btn btn-ghost btn-sm" onclick="sendDocByEmail('${id}','${type}')" style="display:inline-flex;align-items:center;gap:5px">${ico('send')} Envoyer par email</button>
         ${isInv && doc.payment_link ? `<button class="btn btn-ghost btn-sm" onclick="copyText('${doc.payment_link}')" style="display:inline-flex;align-items:center;gap:5px">${ico('link')} Lien Revolut</button>` : ''}
 
@@ -607,7 +671,13 @@ async function viewDoc(type, id) {
         ${!isInv && doc.status !== 'refuse' && doc.status !== 'expire'
           ? `<button class="btn btn-primary btn-sm" onclick="convertToInvoice('${id}')">Convertir en facture →</button>`
           : ''}
-        ${isInv && doc.status !== 'paye'
+        ${isInv && doc.status === 'envoye'
+          ? `<button class="btn btn-ghost btn-sm" onclick="transmitToPA('${id}')" style="display:inline-flex;align-items:center;gap:5px" title="Transmettre à votre Plateforme Agréée">${ico('courthouse')} Transmettre PA</button>`
+          : ''}
+        ${isInv && doc.doc_type !== 'avoir' && (doc.status === 'transmis' || doc.status === 'paye')
+          ? `<button class="btn btn-ghost btn-sm" onclick="createAvoir('${id}')" style="display:inline-flex;align-items:center;gap:5px" title="Générer un avoir (annulation)">${ico('refresh')} Avoir</button>`
+          : ''}
+        ${isInv && doc.status !== 'paye' && doc.doc_type !== 'avoir'
           ? `<button class="btn btn-primary btn-sm" onclick="markPaid('${id}')">Marquer payé</button>`
           : ''}
 
@@ -623,6 +693,18 @@ async function viewDoc(type, id) {
         <span id="inv-link-title" style="font-size:.88rem;font-weight:600;color:var(--blue)">${doc.intervention}</span>
         <span style="font-size:.75rem;color:var(--muted);margin-left:auto">Voir le dossier →</span>
       </div>` : ''}
+      ${isInv && doc.doc_type === 'avoir' && doc.ref_invoice ? `
+      <div style="margin-bottom:1rem;padding:.6rem 1rem;background:rgba(239,68,68,.08);border-radius:var(--r2);border-left:3px solid var(--red);display:flex;align-items:center;gap:.75rem">
+        <span style="font-size:.8rem;color:var(--red);font-weight:600">Avoir</span>
+        <span style="font-size:.88rem;color:var(--muted)">Annule la facture</span>
+        <span style="font-size:.88rem;font-weight:600;color:var(--blue);cursor:pointer" onclick="_goToInvoiceByNumber('${doc.ref_invoice}')">${doc.ref_invoice} →</span>
+      </div>` : ''}
+      ${isInv && doc.status === 'annule' ? `
+      <div id="avoir-link-banner" style="margin-bottom:1rem;padding:.6rem 1rem;background:rgba(239,68,68,.08);border-radius:var(--r2);border-left:3px solid var(--red);display:flex;align-items:center;gap:.75rem">
+        <span style="font-size:.8rem;color:var(--red);font-weight:600">Annulée</span>
+        <span style="font-size:.88rem;color:var(--muted)">par avoir</span>
+        <span id="avoir-link-number" style="font-size:.88rem;font-weight:600;color:var(--blue)">…</span>
+      </div>` : ''}
       <div style="display:flex;justify-content:center">
         <div id="doc-preview-area">${docPreviewHTML(doc, type)}</div>
       </div>
@@ -636,27 +718,153 @@ async function viewDoc(type, id) {
         if (el) el.textContent = inv.title + (inv.device_info ? ' — ' + inv.device_info : '');
       }).catch(() => {});
   }
+  // Détecter un avoir lié — si trouvé : bandeau + filigrane + mise à jour statut
+  if (isInv && doc.doc_type !== 'avoir' && doc.number) {
+    api.req('GET', `/api/collections/invoices/records?filter=${encodeURIComponent("ref_invoice='"+doc.number+"' && doc_type='avoir'")}&perPage=1`)
+      .then(res => {
+        const avoir = res?.items?.[0];
+        if (!avoir) return;
+
+        // Mettre à jour le statut en DB si pas encore annulé
+        if (doc.status !== 'annule') {
+          api.req('PATCH', `/api/collections/invoices/records/${id}`, { status: 'annule' }).catch(() => {});
+        }
+
+        // Bandeau avoir-link-banner (créer si absent)
+        let banner = document.getElementById('avoir-link-banner');
+        if (!banner) {
+          banner = document.createElement('div');
+          banner.id = 'avoir-link-banner';
+          banner.style.cssText = 'margin-bottom:1rem;padding:.6rem 1rem;background:rgba(239,68,68,.08);border-radius:var(--r2);border-left:3px solid var(--red);display:flex;align-items:center;gap:.75rem';
+          banner.innerHTML = `<span style="font-size:.8rem;color:var(--red);font-weight:600">Annulée</span><span style="font-size:.88rem;color:var(--muted)">par avoir</span><span id="avoir-link-number" style="font-size:.88rem;font-weight:600;color:var(--blue)">…</span>`;
+          const flexWrap = document.getElementById('doc-preview-area')?.parentElement;
+          if (flexWrap?.parentElement) flexWrap.parentElement.insertBefore(banner, flexWrap);
+        }
+        const el = document.getElementById('avoir-link-number');
+        if (el) { el.textContent = avoir.number; el.style.cursor = 'pointer'; el.onclick = () => viewInvoice(avoir.id); }
+
+        // Filigrane ANNULÉ sur la preview
+        const preview = document.getElementById('doc-preview-area')?.firstElementChild;
+        if (preview && !preview.querySelector('#watermark-annule')) {
+          const wm = document.createElement('div');
+          wm.id = 'watermark-annule';
+          wm.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;display:flex;align-items:center;justify-content:center;overflow:hidden';
+          wm.innerHTML = '<div style="transform:rotate(-45deg);font-size:7rem;font-weight:900;color:rgba(239,68,68,0.13);text-transform:uppercase;white-space:nowrap;letter-spacing:.2em;user-select:none">ANNULÉ</div>';
+          preview.style.position = 'relative';
+          preview.insertBefore(wm, preview.firstChild);
+        }
+      }).catch(() => {});
+  }
   } catch(e) { console.error(e); toast('Erreur', 'error'); }
 }
 
+async function _goToInvoiceByNumber(number) {
+  try {
+    const res = await api.req('GET', `/api/collections/invoices/records?filter=${encodeURIComponent("number='"+number+"'")}&perPage=1`);
+    const inv = res?.items?.[0];
+    if (inv) viewInvoice(inv.id);
+    else toast('Facture ' + number + ' introuvable', 'warn');
+  } catch(e) { toast('Erreur', 'error'); }
+}
+
 async function transmitToPA(id) {
+  console.log('[PA] transmitToPA id=', id, '| _currentDoc.id=', window._currentDoc?.id);
   const ok = await confirm('Transmettre cette facture à votre Plateforme Agréée (norme AFNOR XP Z12-013) ?\nLa facture sera routée vers la PA de votre client.');
   if (!ok) return;
+  // Utiliser l'ID du doc courant si le paramètre est suspect
+  const invoiceId = (id && id.length > 5) ? id : window._currentDoc?.id;
+  if (!invoiceId) { toast('Erreur : ID facture introuvable', 'error'); return; }
+  id = invoiceId;
+  console.log('[PA] invoiceId effectif=', id);
   try {
-    toast('Transmission en cours...', 'info', 8000);
-    await api.req('PATCH', `/api/collections/invoices/records/${id}`, { status: 'transmis_pa' });
-    // Attendre que le hook traite (2-3 secondes)
-    await new Promise(r => setTimeout(r, 3000));
-    const inv = await api.req('GET', `/api/collections/invoices/records/${id}`);
-    if (inv.pa_invoice_id) {
-      toast('Facture transmise à la PA ! ID : ' + inv.pa_invoice_id, 'success', 6000);
-    } else if (inv.status === 'transmis') {
-      toast('Facture transmise avec succès', 'success', 5000);
+    toast('Génération Factur-X...', 'info', 6000);
+    await loadHtml2Pdf();
+    const doc = await api.req('GET', `/api/collections/invoices/records/${id}`);
+    // Découvrir les routing IDs Peppol depuis SUPER PDP (test CII → sandbox IDs)
+    const buyerSiren = (doc.client_siret || '').replace(/\s/g, '').slice(0, 9);
+    const sellerRoutingRes = await api.req('GET', '/api/pa-sender-routing').catch(() => ({}));
+    doc._pa_sender_routing = sellerRoutingRes?.routing_id || '';
+    // Si le buyer correspond à l'acheteur du CII de test, utiliser son routing interne
+    const testBuyer = sellerRoutingRes?.test_buyer || {};
+    if (buyerSiren && testBuyer.siren && buyerSiren === testBuyer.siren && testBuyer.routing_id) {
+      doc._pa_buyer_routing = testBuyer.routing_id;
     } else {
-      toast('Vérifiez les logs PocketBase — la configuration PA est peut-être incomplète', 'warn', 6000);
+      // Fallback : lookup Peppol (production)
+      const buyerRes = buyerSiren ? await api.req('GET', '/api/pa-peppol-lookup?siren=' + buyerSiren).catch(() => ({})) : {};
+      doc._pa_buyer_routing = buyerRes?.routing_id || '';
     }
+    console.log('[PA] seller routing:', doc._pa_sender_routing || '(non trouvé)', '| buyer routing:', doc._pa_buyer_routing || '(non trouvé)');
+    const { xml } = await generateFacturXPdf(doc, 'invoice');
+    if (!xml) { toast('Erreur : XML Factur-X introuvable', 'error'); return; }
+
+    toast('Transmission en cours...', 'info', 10000);
+    try {
+      await api.req('PATCH', `/api/collections/invoices/records/${id}`, {
+        status: 'transmis_pa',
+        pdf_b64: xml,
+      });
+    } catch(patchErr) {
+      console.error('[PA] PATCH échoue :', JSON.stringify(patchErr));
+      toast('PATCH échoue : ' + JSON.stringify(patchErr?.data || patchErr?.message), 'error', 14000);
+      return;
+    }
+    await new Promise(r => setTimeout(r, 6000));
+    const inv = await api.req('GET', `/api/collections/invoices/records/${id}`);
+    console.log('[PA] status:', inv.status, '| pa_invoice_id:', inv.pa_invoice_id);
+    if (inv.status === 'transmis' && inv.pa_invoice_id && !inv.pa_invoice_id.startsWith('ERR:')) {
+      toast('Transmis PA ! ID : ' + inv.pa_invoice_id, 'success', 8000);
+    } else if (inv.pa_invoice_id && inv.pa_invoice_id.startsWith('ERR:')) {
+      toast('Erreur PA : ' + inv.pa_invoice_id.slice(4), 'error', 14000);
+    } else {
+      toast('Statut: ' + inv.status + ' — pa_id: ' + (inv.pa_invoice_id||'vide'), 'warn', 14000);
+    }
+    await new Promise(r => setTimeout(r, 2000));
     viewInvoice(id);
-  } catch(e) { toast('Erreur : ' + (e.message||''), 'error'); }
+  } catch(e) { toast('Erreur : ' + (e.message||e), 'error'); }
+}
+
+async function createAvoir(invoiceId) {
+  const ok = await confirm('Générer un avoir (annulation) pour cette facture ?\nUn nouveau document sera créé avec les montants en négatif, lié à cette facture.');
+  if (!ok) return;
+  try {
+    const src = await api.req('GET', `/api/collections/invoices/records/${invoiceId}`);
+
+    // Numéro d'avoir : AVO-AAAA-NNN
+    const year = new Date().getFullYear();
+    const existing = await api.req('GET', `/api/collections/invoices/records?filter=${encodeURIComponent("number~'AVO-"+year+"'")}&sort=-number&perPage=1`).catch(()=>({items:[]}));
+    let seq = 1;
+    if (existing?.items?.[0]?.number) {
+      const m = existing.items[0].number.match(/(\d+)$/);
+      if (m) seq = parseInt(m[1]) + 1;
+    }
+    const avoirNumber = `AVO-${year}-${String(seq).padStart(3, '0')}`;
+
+    const avoir = await api.req('POST', '/api/collections/invoices/records', {
+      number:       avoirNumber,
+      doc_type:     'avoir',
+      ref_invoice:  src.number,
+      status:       'brouillon',
+      client_name:  src.client_name,
+      client_email: src.client_email,
+      client_phone: src.client_phone,
+      client_address: src.client_address,
+      client_siret: src.client_siret,
+      client_tva:   src.client_tva,
+      items:        src.items,
+      subtotal:     src.subtotal,
+      total:        src.total,
+      issued_at:    new Date().toISOString().slice(0, 10),
+      due_date:     new Date().toISOString().slice(0, 10),
+      user:         src.user,
+    });
+
+    // Basculer la facture source en "annulé"
+    await api.req('PATCH', `/api/collections/invoices/records/${invoiceId}`, { status: 'annule' });
+
+    toast(`Avoir ${avoirNumber} créé — facture ${src.number} annulée`, 'success', 5000);
+    await new Promise(r => setTimeout(r, 800));
+    viewInvoice(avoir.id);
+  } catch(e) { toast('Erreur : ' + (e.message||e), 'error'); }
 }
 
 async function downloadDocPdf(id, type) {
@@ -665,24 +873,24 @@ async function downloadDocPdf(id, type) {
     const doc   = await api.req('GET', `/api/collections/${col}/records/${id}`);
     const title = doc.number || (type === 'invoice' ? 'Facture' : 'Devis');
 
-    // Utiliser l'élément déjà rendu sur la page (garantit un rendu correct)
-    const previewEl = document.getElementById('doc-preview-area');
     await loadHtml2Pdf();
 
-    const source = previewEl && previewEl.children.length
-      ? previewEl
-      : (() => {
-          const div = document.createElement('div');
-          div.style.cssText = 'position:fixed;top:-2000px;left:0;width:800px;background:#fff';
-          div.innerHTML = docPreviewHTML(doc, type);
-          document.body.appendChild(div);
-          return div;
-        })();
+    const previewEl = document.getElementById('doc-preview-area');
+    let source, needsRemove;
+    if (previewEl && previewEl.children.length) {
+      source = previewEl;
+      needsRemove = false;
+    } else {
+      source = document.createElement('div');
+      source.style.cssText = 'position:fixed;left:-10000px;top:0;width:800px;background:#fff';
+      source.innerHTML = docPreviewHTML(doc, type);
+      document.body.appendChild(source);
+      needsRemove = true;
+    }
 
-    const needsRemove = source !== previewEl;
-
-    toast('Generation PDF...', 'info', 5000);
-    await new Promise(r => setTimeout(r, needsRemove ? 300 : 50));
+    toast('Génération PDF...', 'info', 5000);
+    await _waitForImages(source);
+    await new Promise(r => setTimeout(r, needsRemove ? 150 : 60));
 
     html2pdf().set({
       margin:      [10, 10, 10, 10],
@@ -691,8 +899,8 @@ async function downloadDocPdf(id, type) {
       html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
       jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
     }).from(source).save().then(() => {
-      if (needsRemove) document.body.removeChild(source);
-      toast('PDF telecharge', 'success', 3000);
+      if (needsRemove) try { document.body.removeChild(source); } catch(e) {}
+      toast('PDF téléchargé', 'success', 3000);
     }).catch(err => {
       if (needsRemove) try { document.body.removeChild(source); } catch(e) {}
       toast('Erreur PDF', 'error');
@@ -889,7 +1097,8 @@ async function deleteProductConfirm(id) {
 // SÉLECTION RAPIDE DEPUIS LE CATALOGUE
 // ═══════════════════════════════════════════
 function docPreviewHTML(doc, type) {
-  const isInv = type === 'invoice';
+  const isInv  = type === 'invoice';
+  const isAvoir = doc.doc_type === 'avoir';
   const items = Array.isArray(doc.items) ? doc.items : (typeof doc.items === 'string' ? JSON.parse(doc.items||'[]') : []);
   const totals = calcTotals(items, doc.tax_rate||0);
   const issued = doc.issued_at ? new Date(doc.issued_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
@@ -899,18 +1108,23 @@ function docPreviewHTML(doc, type) {
 
   const logoUrl = localStorage.getItem('doc_logo_b64') || (typeof window !== 'undefined' && window._customLogo) || '/img/logo.png';
 
-  return `<div style="background:#fff;color:#1a1a2e;font-family:Arial,Helvetica,sans-serif;max-width:800px;font-size:10pt;line-height:1.5">
+  return `<div style="background:#fff;color:#1a1a2e;font-family:Arial,Helvetica,sans-serif;max-width:800px;font-size:10pt;line-height:1.5;display:flex;flex-direction:column;min-height:1050px;position:relative">
+
+    ${doc.status === 'annule' ? `<div style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;display:flex;align-items:center;justify-content:center;overflow:hidden">
+      <div style="transform:rotate(-45deg);font-size:7rem;font-weight:900;color:rgba(239,68,68,0.13);text-transform:uppercase;white-space:nowrap;letter-spacing:.2em;user-select:none">ANNULÉ</div>
+    </div>` : ''}
 
     <!-- EN-TÊTE -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:2rem 2.5rem 1.5rem;border-bottom:3px solid var(--blue)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:1rem 2.5rem 1rem;border-bottom:3px solid var(--blue)">
       <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.4rem">
         <img src="${logoUrl}" alt="" style="max-height:110px;max-width:220px;object-fit:contain"
           onerror="this.style.display='none'">
         <div style="font-size:.78rem;color:#777">${BUSINESS.email}${BUSINESS.phone ? ' · ' + BUSINESS.phone : ''}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:1.5rem;font-weight:800;color:#1a1a2e;text-transform:uppercase;letter-spacing:.04em">${isInv ? 'Facture' : 'Devis'}</div>
+        <div style="font-size:1.5rem;font-weight:800;color:#1a1a2e;text-transform:uppercase;letter-spacing:.04em">${isAvoir ? 'Avoir' : isInv ? 'Facture' : 'Devis'}</div>
         <div style="font-size:1rem;font-weight:700;color:var(--blue);margin:.2rem 0">${doc.number||''}</div>
+        ${isAvoir && doc.ref_invoice ? `<div style="font-size:.78rem;color:#888;margin-bottom:.2rem">Annule la facture <strong>${doc.ref_invoice}</strong></div>` : ''}
         <div style="font-size:.8rem;color:#666;line-height:1.8">
           Émis le : <strong>${issued}</strong><br>
           ${isInv ? `Échéance : <strong>${due}</strong>` : `Valide jusqu'au : <strong>${due}</strong>`}
@@ -919,6 +1133,7 @@ function docPreviewHTML(doc, type) {
       </div>
     </div>
 
+    <div style="flex:1">
     <!-- CLIENT -->
     <div style="padding:1.25rem 2.5rem;background:rgba(var(--blue-rgb),0.05);border-bottom:1px solid rgba(var(--blue-rgb),0.15)">
       <div style="font-size:.65rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.4rem">Facturer à</div>
@@ -992,18 +1207,22 @@ function docPreviewHTML(doc, type) {
         </div>
       </div>
     </div>` : `
-    <div style="margin:0 2.5rem 1.5rem;background:rgba(var(--blue-rgb),0.08);border-radius:8px;padding:1rem 1.25rem;border-left:4px solid var(--blue);font-size:.82rem;color:#444;line-height:1.8">
+    ${!isAvoir ? `<div style="margin:0 2.5rem 1.5rem;background:rgba(var(--blue-rgb),0.08);border-radius:8px;padding:1rem 1.25rem;border-left:4px solid var(--blue);font-size:.82rem;color:#444;line-height:1.8">
       <strong>Règlement par virement bancaire</strong><br>
       Bénéficiaire : ${BUSINESS.name} · IBAN : <strong style="font-family:monospace">${BUSINESS.iban}</strong><br>
       BIC : ${BUSINESS.bic} · Référence : <strong>${doc.number||''}</strong>
       ${doc.payment_link ? `<br>💳 Paiement en ligne : <a href="${doc.payment_link}" style="color:var(--blue)">${doc.payment_link}</a>` : ''}
-    </div>`}
+    </div>` : ''}`}
 
     ${doc.notes ? `<div style="margin:0 2.5rem 1.5rem;font-size:.8rem;color:#555;padding:.75rem;background:#f9f9f9;border-radius:4px;border:1px solid #eee">${doc.notes}</div>` : ''}
 
+    ${isInv && !isAvoir ? `<div style="margin:0 2.5rem 1rem;font-size:.72rem;color:#555;padding:.75rem 1rem;background:#fffdf0;border-radius:4px;border:1px solid #e8e0c8;line-height:1.8">Règlement à ${BUSINESS.payment_days||30} jours à compter de la date de facturation. En cas de retard de paiement, des pénalités de retard seront appliquées au taux de 3 fois le taux d'intérêt légal en vigueur, exigibles dès le premier jour de retard (art. L. 441-10 C. com.). Indemnité forfaitaire pour frais de recouvrement : <strong>40 €</strong> (art. L. 441-10 C. com.).</div>` : ''}
+
+    </div><!-- /corps flex:1 -->
+
     <!-- PIED -->
     <div style="padding:1rem 2.5rem;border-top:1px solid rgba(var(--blue-rgb),0.15);text-align:center;font-size:.7rem;color:#999;background:rgba(var(--blue-rgb),0.03)">
-      ${BUSINESS.legal} · ${BUSINESS.address}, ${BUSINESS.city} · SIREN ${BUSINESS.siret}${BUSINESS.rcs ? ' · ' + BUSINESS.rcs : ''}${BUSINESS.tva_num ? ' · N° TVA ' + BUSINESS.tva_num : ''}${BUSINESS.website ? ' · ' + BUSINESS.website : ''}
+      ${BUSINESS.legal} · ${BUSINESS.address}, ${BUSINESS.city} · SIRET ${BUSINESS.siret}${BUSINESS.rcs ? ' · ' + BUSINESS.rcs : ''}${BUSINESS.tva_num ? ' · N° TVA ' + BUSINESS.tva_num : ''}${BUSINESS.website ? ' · ' + BUSINESS.website : ''}
     </div>
   </div>`;
 }

@@ -1,4 +1,4 @@
-// ── api.js ── PocketBase client
+﻿// ── api.js ── PocketBase client
 
 class API {
   constructor(baseUrl) {
@@ -67,19 +67,25 @@ class API {
     return d;
   }
 
-  async register(email, password, passwordConfirm, name, phone = '') {
+  async register(email, password, passwordConfirm, name, phone = '', extra = {}) {
     return this.req('POST', '/api/collections/users/records', {
       email, password, passwordConfirm, name, phone,
       emailVisibility: false,
+      ...extra,
     });
   }
 
   async verifyOtp(code) {
     return this.req('POST', '/api/verify-otp', { code });
   }
-
   async resendOtp() {
     return this.req('POST', '/api/resend-otp', {});
+  }
+  async requestPasswordReset(email) {
+    return this.req('POST', '/api/collections/users/request-password-reset', { email });
+  }
+  async confirmPasswordReset(token, password) {
+    return this.req('POST', '/api/collections/users/confirm-password-reset', { token, password, passwordConfirm: password });
   }
 
   logout() {

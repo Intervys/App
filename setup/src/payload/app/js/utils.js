@@ -94,24 +94,23 @@ function renderStatusTimeline(status) {
 
   const cur = steps.findIndex(s => s.key === status);
 
-  return `<div style="display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:2px">
-    ${steps.map((step, i) => {
-      const done   = i < cur;
-      const active = i === cur;
-      const col    = step.color;
-      const dotBg     = done ? col : active ? col : 'transparent';
-      const dotBorder = done ? col : active ? col : 'var(--muted)';
-      const lineColor = done ? col : 'var(--border)';
-      const labelColor = done ? col : active ? col : 'var(--muted)';
-      return `<div style="display:flex;align-items:flex-start;flex:1;min-width:0">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0">
-          <div style="width:10px;height:10px;border-radius:50%;background:${dotBg};border:2px solid ${dotBorder};flex-shrink:0;margin-top:1px"></div>
-          <span style="font-size:.68rem;color:${labelColor};font-weight:${active?'700':'400'};text-align:center;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60px${active?';background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px':''}">${step.label}</span>
-        </div>
-        ${i < steps.length - 1 ? `<div style="flex:1;height:2px;background:${lineColor};margin-top:5px;min-width:6px"></div>` : ''}
-      </div>`;
-    }).join('')}
-  </div>`;
+  const rows = steps.map((step, i) => {
+    const done   = i < cur;
+    const active = i === cur;
+    const col    = step.color;
+    const dotBg      = done ? col : active ? col : 'transparent';
+    const dotBorder  = done ? col : active ? col : 'var(--muted)';
+    const lineColor  = done ? col : 'var(--border)';
+    const labelColor = done ? col : active ? col : 'var(--muted)';
+    const labelStyle = 'font-size:.68rem;color:' + labelColor + ';font-weight:' + (active ? '700' : '400') + ';text-align:center;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60px' + (active ? ';background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px' : '');
+    const line = i < steps.length - 1 ? '<div style="flex:1;height:2px;background:' + lineColor + ';margin-top:5px;min-width:6px"></div>' : '';
+    return '<div style="display:flex;align-items:flex-start;flex:1;min-width:0">'
+      + '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0">'
+      + '<div style="width:10px;height:10px;border-radius:50%;background:' + dotBg + ';border:2px solid ' + dotBorder + ';flex-shrink:0;margin-top:1px"></div>'
+      + '<span style="' + labelStyle + '">' + step.label + '</span>'
+      + '</div>' + line + '</div>';
+  });
+  return '<div style="display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:2px">' + rows.join('') + '</div>';
 }
 
 // ── GENERATE TOKEN ──

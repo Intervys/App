@@ -1,4 +1,4 @@
-// ── client.js ── Interface espace client
+﻿// ── client.js ── Interface espace client
 
 // ───────────────────────────────────────────
 // LAYOUT CLIENT
@@ -21,6 +21,9 @@ function renderClientLayout(pageTitle, contentHtml) {
           <a class="sidebar-link ${pageTitle==='Nouvelle demande'?'active':''}" onclick="Router.navigate('/new-intervention')">
             ${ico('plus')} Nouvelle demande
           </a>
+          <a class="sidebar-link ${pageTitle==='Devis &amp; factures'?'active':''}" onclick="Router.navigate('/documents')">
+            ${ico('doc')} Devis &amp; factures
+          </a>
           <a class="sidebar-link ${pageTitle==='Messages'?'active':''}" onclick="Router.navigate('/messages')">
             ${ico('msg')} Mes messages <span class="sidebar-badge" id="client-unread" style="display:none">!</span>
           </a>
@@ -33,7 +36,7 @@ function renderClientLayout(pageTitle, contentHtml) {
               <div style="font-size:.72rem;color:var(--muted)">Client</div>
             </div>
           </div>
-          <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:.75rem" onclick="doLogout()">
+          <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:.75rem" onclick="doClientLogout()">
             ${ico('logout')} Déconnexion
           </button>
         </div>
@@ -118,11 +121,14 @@ async function clientInterventionDetail(id) {
   if (!requireClient()) return;
   renderClientLayout('Suivi intervention', '<div class="spinner"></div>');
   try {
-    const [inv, notes, colis, msgs] = await Promise.all([
+    const f = encodeURIComponent(`intervention="${id}"`);
+    const [inv, notes, colis, msgs, qData, iData] = await Promise.all([
       api.getIntervention(id),
       api.getNotes(id),
       api.getColis(id),
       api.getMessages(id),
+      api.req('GET', `/api/collections/quotes/records?filter=${f}&sort=-created`),
+      api.req('GET', `/api/collections/invoices/records?filter=${f}&sort=-created`),
     ]);
     await api.markMessagesRead(id);
 
@@ -202,6 +208,38 @@ async function clientInterventionDetail(id) {
                 ${c.tracking_url ? `<a href="${c.tracking_url}" target="_blank" class="btn btn-ghost btn-sm" style="margin-top:.6rem;display:inline-flex">🔗 Suivre mon colis</a>` : ''}
               </div>`).join('')}
           </div>` : ''}
+
+          <!-- Documents liés -->
+          ${(qData.items.length || iData.items.length) ? (() => {
+            const QSTATUS = { brouillon:'Brouillon', envoye:'Envoyé', accepte:'Accepté', refuse:'Refusé', expire:'Expiré' };
+            const ISTATUS = { brouillon:'Brouillon', envoye:'Envoyé', paye:'Payé', annule:'Annulé', transmis_pa:'En cours PA', transmis:'Transmis' };
+            const QCOLOR  = { brouillon:'var(--muted)', envoye:'var(--blue)', accepte:'var(--green)', refuse:'var(--red)', expire:'var(--muted)' };
+            const ICOLOR  = { brouillon:'var(--muted)', envoye:'var(--blue)', paye:'var(--green)', annule:'var(--red)', transmis_pa:'var(--orange)', transmis:'var(--green)' };
+            const fmtMoney = n => (n||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
+            const docLine = (d, type) => {
+              const isInv = type==='invoice';
+              const sm = isInv ? ISTATUS : QSTATUS;
+              const cm = isInv ? ICOLOR  : QCOLOR;
+              const col = cm[d.status]||'var(--muted)';
+              return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem .75rem;border-radius:var(--r2);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''" onclick="clientViewDoc('${type}','${d.id}')">
+                <div>
+                  <div style="font-family:var(--FM);font-size:.82rem;font-weight:600">${d.number}</div>
+                  <div style="font-size:.72rem;color:var(--muted);margin-top:.1rem">${isInv?'Facture':'Devis'} · ${fmtMoney(d.total)}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  <span style="font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${col}22;color:${col}">${sm[d.status]||d.status}</span>
+                  <span style="color:var(--muted);font-size:.8rem">›</span>
+                </div>
+              </div>`;
+            };
+            return `<div class="card">
+              <div class="card-header"><span class="card-title">📄 Documents</span></div>
+              <div style="display:flex;flex-direction:column;gap:.1rem">
+                ${qData.items.map(d => docLine(d,'quote')).join('')}
+                ${iData.items.map(d => docLine(d,'invoice')).join('')}
+              </div>
+            </div>`;
+          })() : ''}
 
         </div>
       </div>`;
@@ -283,7 +321,7 @@ function clientNewIntervention() {
   if (!requireClient()) return;
   renderClientLayout('Nouvelle demande', `
     <div class="card" style="max-width:620px">
-      <div class="card-header"><span class="card-title">${ico('tool')} Soumettre une demande</span></div>
+      <div class="card-header"><span class="card-title">Soumettre une demande</span></div>
       <div class="form-group">
         <label>Titre de la demande *</label>
         <input class="form-control" id="f-title" placeholder="Ex: Mon PC ne démarre plus">
@@ -422,8 +460,129 @@ async function accessDashboard(linkId) {
 }
 
 // ───────────────────────────────────────────
+// DEVIS & FACTURES CLIENT
+// ───────────────────────────────────────────
+async function clientDocuments() {
+  if (!requireClient()) return;
+  renderClientLayout('Devis & factures', '<div class="spinner"></div>');
+
+  const email = api.user?.email;
+  if (!email) return;
+
+  try {
+    const f = encodeURIComponent(`client_email="${email}"`);
+    const [qData, iData] = await Promise.all([
+      api.req('GET', `/api/collections/quotes/records?filter=${f}&sort=-created&perPage=200`),
+      api.req('GET', `/api/collections/invoices/records?filter=${f}&sort=-created&perPage=200`),
+    ]);
+
+    const QSTATUS = { brouillon:'Brouillon', envoye:'Envoyé', accepte:'Accepté', refuse:'Refusé', expire:'Expiré' };
+    const QCOLOR  = { brouillon:'var(--muted)', envoye:'var(--blue)', accepte:'var(--green)', refuse:'var(--red)', expire:'var(--muted)' };
+    const ISTATUS = { brouillon:'Brouillon', envoye:'Envoyé', paye:'Payé', annule:'Annulé', transmis_pa:'En cours PA', transmis:'Transmis' };
+    const ICOLOR  = { brouillon:'var(--muted)', envoye:'var(--blue)', paye:'var(--green)', annule:'var(--red)', transmis_pa:'var(--orange)', transmis:'var(--green)' };
+
+    const fmtMoney = n => (n||0).toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
+    const badge = (s, map, colors) => `<span style="font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${colors[s]||'var(--muted)'}22;color:${colors[s]||'var(--muted)'}">${map[s]||s}</span>`;
+
+    const docRow = (d, type) => {
+      const isInv = type === 'invoice';
+      const statMap = isInv ? ISTATUS : QSTATUS;
+      const colMap  = isInv ? ICOLOR  : QCOLOR;
+      const canAccept = !isInv && d.status === 'envoye';
+      const canPay    = isInv && d.status === 'envoye' && d.payment_link;
+      return `<tr style="border-bottom:1px solid var(--border2);cursor:pointer" onclick="clientViewDoc('${type}','${d.id}')">
+        <td style="padding:.75rem 1rem;font-family:var(--FM);font-size:.82rem">${d.number}</td>
+        <td style="padding:.75rem .5rem">${badge(d.status, statMap, colMap)}</td>
+        <td style="padding:.75rem .5rem;font-size:.85rem;color:var(--muted)">${d.issued_at ? fmtDateShort(d.issued_at) : '—'}</td>
+        <td style="padding:.75rem .5rem;font-weight:600;text-align:right">${fmtMoney(d.total)}</td>
+        <td style="padding:.75rem 1rem;text-align:right">
+          ${canPay ? `<a href="${d.payment_link}" target="_blank" class="btn btn-primary btn-sm" onclick="event.stopPropagation()">Payer</a>` : ''}
+          ${canAccept ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();clientAcceptQuote('${d.id}')">Accepter</button>` : ''}
+        </td>
+      </tr>`;
+    };
+
+    const section = (title, items, type, emptyMsg) => `
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header"><span class="card-title">${title}</span></div>
+        ${items.length === 0
+          ? `<div class="empty-state" style="padding:2rem"><p style="color:var(--muted)">${emptyMsg}</p></div>`
+          : `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+              <thead><tr style="border-bottom:2px solid var(--border)">
+                <th style="padding:.5rem 1rem;text-align:left;font-size:.72rem;color:var(--muted);font-weight:600">N°</th>
+                <th style="padding:.5rem .5rem;text-align:left;font-size:.72rem;color:var(--muted);font-weight:600">Statut</th>
+                <th style="padding:.5rem .5rem;text-align:left;font-size:.72rem;color:var(--muted);font-weight:600">Date</th>
+                <th style="padding:.5rem .5rem;text-align:right;font-size:.72rem;color:var(--muted);font-weight:600">Montant</th>
+                <th></th>
+              </tr></thead>
+              <tbody>${items.map(d => docRow(d, type)).join('')}</tbody>
+            </table></div>`
+        }
+      </div>`;
+
+    document.getElementById('page-content').innerHTML =
+      section('📋 Mes devis', qData.items, 'quote', 'Aucun devis pour le moment.') +
+      section('🧾 Mes factures', iData.items, 'invoice', 'Aucune facture pour le moment.');
+
+  } catch(e) { console.error(e); toast('Erreur chargement', 'error'); }
+}
+
+async function clientViewDoc(type, id) {
+  if (!requireClient()) return;
+  const col = type === 'quote' ? 'quotes' : 'invoices';
+  const isInv = type === 'invoice';
+  try {
+    const doc = await api.req('GET', `/api/collections/${col}/records/${id}`);
+    window._clientDoc = doc;
+
+    const canAccept = !isInv && doc.status === 'envoye';
+    const canRefuse = !isInv && doc.status === 'envoye';
+    const canPay    = isInv && doc.status === 'envoye' && doc.payment_link;
+
+    // Même structure que l'admin : boutons en haut, doc-preview-area immédiatement après
+    renderClientLayout('Devis & factures', `
+      <div style="display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center;justify-content:space-between">
+        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="Router.navigate('/documents')">← Retour</button>
+          ${canAccept ? `<button class="btn btn-primary btn-sm" onclick="clientAcceptQuote('${doc.id}')">✓ Accepter le devis</button>` : ''}
+          ${canRefuse ? `<button class="btn btn-ghost btn-sm" onclick="clientRefuseQuote('${doc.id}')">✗ Refuser</button>` : ''}
+          ${canPay    ? `<a href="${doc.payment_link}" target="_blank" class="btn btn-primary btn-sm">💳 Payer en ligne</a>` : ''}
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="downloadFacturXPdf(window._clientDoc,'${type}')" style="display:inline-flex;align-items:center;gap:5px">${ico('doc')} Télécharger PDF</button>
+      </div>
+      <div style="display:flex;justify-content:center">
+        <div id="doc-preview-area">${docPreviewHTML(doc, type)}</div>
+      </div>`);
+
+  } catch(e) { toast('Erreur chargement du document', 'error'); }
+}
+
+async function clientAcceptQuote(id) {
+  if (!confirm('Confirmer l\'acceptation de ce devis ?')) return;
+  try {
+    await api.req('PATCH', `/api/collections/quotes/records/${id}`, { status: 'accepte' });
+    toast('Devis accepté !', 'success');
+    clientViewDoc('quote', id);
+  } catch(e) { toast('Erreur', 'error'); }
+}
+
+async function clientRefuseQuote(id) {
+  if (!confirm('Confirmer le refus de ce devis ?')) return;
+  try {
+    await api.req('PATCH', `/api/collections/quotes/records/${id}`, { status: 'refuse' });
+    toast('Devis refusé.', 'info');
+    Router.navigate('/documents');
+  } catch(e) { toast('Erreur', 'error'); }
+}
+
+// ───────────────────────────────────────────
 // HELPERS
 // ───────────────────────────────────────────
+function doClientLogout() {
+  api.logout();
+  Router.navigate('/login');
+}
+
 function requireClient() {
   if (!api.isLoggedIn) { Router.navigate('/login'); return false; }
   if (api.isAdmin)     { Router.navigate('/admin'); return false; }
@@ -467,9 +626,11 @@ async function clientMessages() {
 
     const firstId = withMsgs[0].id;
 
-    document.getElementById('page-content').innerHTML = `
-      <div style="display:grid;grid-template-columns:280px 1fr;gap:0;height:calc(100vh - 120px);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--surface)">
-        <div id="conv-list" style="border-right:1px solid var(--border);overflow-y:auto;background:var(--bg2)">
+    const pc = document.getElementById('page-content');
+    pc.style.cssText = 'padding:0;display:flex;flex-direction:column;height:calc(100vh - 64px);overflow:hidden';
+    pc.innerHTML = `
+      <div style="display:flex;flex:1;overflow:hidden;margin:.75rem;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)">
+        <div id="conv-list" style="width:280px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;background:var(--bg2)">
           ${withMsgs.map(i => {
             const last = lastMsgMap[i.id];
             return `<div id="cconv-${i.id}" onclick="openClientConv('${i.id}')"
@@ -485,12 +646,12 @@ async function clientMessages() {
             </div>`;
           }).join('')}
         </div>
-        <div style="display:flex;flex-direction:column;overflow:hidden">
-          <div style="padding:1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
+          <div style="padding:1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
             <span id="cchat-title" style="font-weight:700">Chargement...</span>
             <button class="btn btn-ghost btn-sm" id="cchat-goto">Voir l'intervention →</button>
           </div>
-          <div id="cchat-messages" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.75rem;background:var(--bg2)">
+          <div id="cchat-messages" style="flex:1;min-height:0;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.75rem;background:var(--bg2)">
             <div class="spinner"></div>
           </div>
           <div style="padding:.75rem;border-top:1px solid var(--border);display:flex;gap:.5rem;background:var(--surface)">

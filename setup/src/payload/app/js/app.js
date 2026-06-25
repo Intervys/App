@@ -1,4 +1,4 @@
-
+﻿
 // ── Page login SSO Authelia ──
 function renderAdminLoginSSO() {
   document.getElementById('app').innerHTML = `
@@ -63,7 +63,8 @@ function renderLoginPage(tab = 'login') {
             <input class="form-control" type="password" id="l-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
           </div>
           <button class="btn btn-primary" style="width:100%;margin-top:.25rem" onclick="doLogin()">Se connecter</button>
-          <div style="text-align:center;margin-top:.75rem">
+          <div style="text-align:center;margin-top:.75rem;display:flex;justify-content:space-between;align-items:center">
+            <a onclick="renderForgotPage()" style="font-size:.8rem;color:var(--muted);cursor:pointer">Mot de passe oublié ?</a>
             <span onclick="renderAdminLogin()" style="color:var(--muted);font-size:.75rem;cursor:pointer;letter-spacing:.2em" title="Administration">···</span>
           </div>
         ` : `
@@ -84,6 +85,29 @@ function renderLoginPage(tab = 'login') {
           <div class="form-group">
             <label>Téléphone</label>
             <input class="form-control" type="tel" id="r-phone" placeholder="06 00 00 00 00">
+          </div>
+          <div class="form-group">
+            <label>Type de compte</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+              <button type="button" id="r-btn-part" class="btn btn-sm btn-primary" onclick="setRegisterAccountType('particulier')">Particulier</button>
+              <button type="button" id="r-btn-pro" class="btn btn-sm btn-ghost" onclick="setRegisterAccountType('pro')">Professionnel</button>
+            </div>
+          </div>
+          <div id="r-pro-fields" style="display:none">
+            <div class="form-group">
+              <label>Raison sociale *</label>
+              <input class="form-control" id="r-company" placeholder="SARL Exemple">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+              <div class="form-group">
+                <label>SIREN *</label>
+                <input class="form-control" id="r-siren" placeholder="123456789" maxlength="9" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+              </div>
+              <div class="form-group">
+                <label>N° TVA intracom.</label>
+                <input class="form-control" id="r-tva" placeholder="FR12345678901">
+              </div>
+            </div>
           </div>
           <div class="form-group" style="position:relative">
             <label>Adresse postale</label>
@@ -113,6 +137,24 @@ function renderLoginPage(tab = 'login') {
     </div>
     <div id="toast-container"></div>
   `;
+}
+
+function setRegisterAccountType(type) {
+  const isPro = type === 'pro';
+  const proFields = document.getElementById('r-pro-fields');
+  const btnPart = document.getElementById('r-btn-part');
+  const btnPro = document.getElementById('r-btn-pro');
+  if (proFields) proFields.style.display = isPro ? '' : 'none';
+  if (btnPart) btnPart.className = 'btn btn-sm ' + (isPro ? 'btn-ghost' : 'btn-primary');
+  if (btnPro) btnPro.className = 'btn btn-sm ' + (isPro ? 'btn-primary' : 'btn-ghost');
+  if (!isPro) {
+    const company = document.getElementById('r-company');
+    const siren = document.getElementById('r-siren');
+    const tva = document.getElementById('r-tva');
+    if (company) company.value = '';
+    if (siren) siren.value = '';
+    if (tva) tva.value = '';
+  }
 }
 
 function renderAdminLogin() {
@@ -187,15 +229,22 @@ async function doRegister() {
   const email = document.getElementById('r-email').value.trim();
   const phone = document.getElementById('r-phone')?.value.trim() || '';
   const address = document.getElementById('r-address')?.value.trim() || '';
+  const is_pro = document.getElementById('r-pro-fields')?.style.display !== 'none';
+  const company = document.getElementById('r-company')?.value.trim() || '';
+  const siren = document.getElementById('r-siren')?.value.replace(/\s/g, '') || '';
+  const tva_num = document.getElementById('r-tva')?.value.trim() || '';
   const pwd   = document.getElementById('r-pwd').value;
   const pwd2  = document.getElementById('r-pwd2').value;
   if (!name || !email || !pwd) return toast('Remplissez tous les champs', 'warn');
+  if (is_pro && !company) return toast('Renseignez la raison sociale', 'warn');
+  if (is_pro && !/^\d{9}$/.test(siren)) return toast('SIREN invalide (9 chiffres)', 'warn');
   if (pwd !== pwd2) return toast('Les mots de passe ne correspondent pas', 'error');
   if (pwd.length < 8) return toast('Mot de passe trop court (8 caractères min)', 'warn');
   try {
-    const user = await api.register(email, pwd, pwd2, name, phone);
-    if (user.id && (firstname || address)) {
-      await api.updateUser(user.id, { firstname, address }).catch(() => {});
+    const extra = { firstname, address, is_pro, company, siren, tva_num };
+    const user = await api.register(email, pwd, pwd2, name, phone, extra);
+    if (user.id && (firstname || address || is_pro)) {
+      await api.updateUser(user.id, extra).catch(() => {});
     }
     await api.loginUser(email, pwd);
     if (api.user && api.user.email_verified === false) {
@@ -236,6 +285,10 @@ function renderOtpPage() {
     <div id="toast-container"></div>
   `;
   setTimeout(() => document.getElementById('otp-code')?.focus(), 100);
+  // Auto-envoyer le code si aucun n'est en attente (ex : compte ancien sans OTP)
+  if (!api.user?.otp_code) {
+    api.resendOtp().catch(() => {});
+  }
 }
 
 async function doSubmitOtp() {
@@ -261,6 +314,92 @@ async function doResendOtp() {
   }
   if (link) {
     setTimeout(() => { link.style.pointerEvents = ''; link.textContent = 'Renvoyer le code'; }, 30000);
+  }
+}
+
+// ───────────────────────────────────────────
+// MOT DE PASSE OUBLIÉ
+// ───────────────────────────────────────────
+function renderForgotPage() {
+  document.getElementById('app').innerHTML = `
+    <div class="login-page">
+      <div class="login-card">
+        ${(()=>{const s=localStorage.getItem('hg_logo_size')||'150';return `<div class="login-logo"><img src="${window._customLogo || 'img/logo.png'}" style="height:${s}px;width:auto"></div>`;})()}
+        <p class="login-sub">Réinitialisation du mot de passe</p>
+        <p style="font-size:.85rem;color:var(--muted);text-align:center;margin-bottom:1.25rem">
+          Entrez votre adresse email. Vous recevrez un lien pour choisir un nouveau mot de passe.
+        </p>
+        <div class="form-group">
+          <label>Email</label>
+          <input class="form-control" type="email" id="forgot-email" placeholder="vous@exemple.fr" autofocus
+            onkeydown="if(event.key==='Enter')doForgotPassword()">
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:.25rem" onclick="doForgotPassword()">Envoyer le lien</button>
+        <div style="text-align:center;margin-top:1rem">
+          <a onclick="renderLoginPage()" style="font-size:.82rem;color:var(--muted);cursor:pointer">← Retour connexion</a>
+        </div>
+      </div>
+    </div>
+    <div id="toast-container"></div>
+  `;
+  setTimeout(() => document.getElementById('forgot-email')?.focus(), 100);
+}
+
+async function doForgotPassword() {
+  const email = (document.getElementById('forgot-email')?.value || '').trim();
+  if (!email) return toast('Entrez votre adresse email', 'warn');
+  const btn = document.querySelector('#app .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
+  try {
+    await api.requestPasswordReset(email);
+    document.getElementById('app').querySelector('.login-card').innerHTML = `
+      <div style="text-align:center;padding:1rem 0">
+        <div style="font-size:2.5rem;margin-bottom:1rem">📧</div>
+        <h3 style="margin-bottom:.75rem">Email envoyé !</h3>
+        <p style="color:var(--muted);font-size:.88rem;line-height:1.7">
+          Si un compte existe pour <strong>${email}</strong>,<br>vous recevrez un lien de réinitialisation.
+        </p>
+        <button class="btn btn-ghost" style="margin-top:1.5rem" onclick="renderLoginPage()">← Retour connexion</button>
+      </div>`;
+  } catch(e) {
+    toast('Erreur lors de l\'envoi', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Envoyer le lien'; }
+  }
+}
+
+function renderResetPage(token) {
+  document.getElementById('app').innerHTML = `
+    <div class="login-page">
+      <div class="login-card">
+        ${(()=>{const s=localStorage.getItem('hg_logo_size')||'150';return `<div class="login-logo"><img src="${window._customLogo || 'img/logo.png'}" style="height:${s}px;width:auto"></div>`;})()}
+        <p class="login-sub">Nouveau mot de passe</p>
+        <div class="form-group">
+          <label>Nouveau mot de passe</label>
+          <input class="form-control" type="password" id="reset-pwd" placeholder="8 caractères min" autofocus>
+        </div>
+        <div class="form-group">
+          <label>Confirmer</label>
+          <input class="form-control" type="password" id="reset-pwd2" placeholder="••••••••"
+            onkeydown="if(event.key==='Enter')doResetPassword('${token}')">
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:.25rem" onclick="doResetPassword('${token}')">Changer le mot de passe</button>
+      </div>
+    </div>
+    <div id="toast-container"></div>
+  `;
+}
+
+async function doResetPassword(token) {
+  const pwd  = document.getElementById('reset-pwd')?.value  || '';
+  const pwd2 = document.getElementById('reset-pwd2')?.value || '';
+  if (pwd.length < 8)   return toast('Mot de passe trop court (8 caractères min)', 'warn');
+  if (pwd !== pwd2)     return toast('Les mots de passe ne correspondent pas', 'error');
+  try {
+    await api.confirmPasswordReset(token, pwd);
+    toast('Mot de passe modifié ! Vous pouvez vous connecter.', 'success', 5000);
+    setTimeout(() => renderLoginPage(), 1500);
+  } catch(e) {
+    toast(e.message || 'Lien expiré ou invalide', 'error');
   }
 }
 
@@ -360,8 +499,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   Router.on('/doc/quotes/:id',   ({ id }) => docDownload('quotes',   id));
   Router.on('/doc/invoices/:id', ({ id }) => docDownload('invoices', id));
 
-  // Login
+  // Login / password reset
   Router.on('/login',                        () => renderLoginPage());
+  Router.on('/reset-password/:token',        ({ token }) => renderResetPage(token));
+  Router.on('/documents',                    () => clientDocuments());
   Router.on('/admin-login',                  () => renderAdminLogin());
   Router.on('/',                             () => {
     if (!api.isLoggedIn) { renderLoginPage(); return; }
@@ -413,6 +554,28 @@ function editClientModal(id, name, email, phone) {
           oninput="searchAddress(this.value)">
         <div id="address-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);z-index:200;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
       </div>
+      <div style="border-top:1px solid var(--border);margin-top:1rem;padding-top:1rem">
+        <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-weight:600;margin-bottom:.75rem">
+          <input type="checkbox" id="ec-is-pro" ${u.is_pro ? 'checked' : ''} onchange="document.getElementById('ec-pro-fields').style.display=this.checked?'':'none'">
+          Compte professionnel
+        </label>
+        <div id="ec-pro-fields" style="display:${u.is_pro ? '' : 'none'}">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Raison sociale</label>
+              <input class="form-control" id="ec-company" value="${u.company||''}" placeholder="SARL Exemple">
+            </div>
+            <div class="form-group">
+              <label>SIREN</label>
+              <input class="form-control" id="ec-siren" value="${u.siren||''}" placeholder="123456789" maxlength="9">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>N° TVA intracom <span style="color:var(--muted2);font-weight:400">(optionnel)</span></label>
+            <input class="form-control" id="ec-tva" value="${u.tva_num||''}" placeholder="FR12345678901">
+          </div>
+        </div>
+      </div>
     `);
   }).catch(() => toast('Erreur chargement', 'error'));
 }
@@ -451,9 +614,14 @@ async function submitEditClient(id) {
   const email   = document.getElementById('ec-email').value.trim();
   const phone   = document.getElementById('ec-phone').value.trim();
   const address = document.getElementById('ec-address').value.trim();
+  const is_pro  = document.getElementById('ec-is-pro').checked;
+  const company = document.getElementById('ec-company')?.value.trim() || '';
+  const siren   = document.getElementById('ec-siren')?.value.replace(/\s/g,'') || '';
+  const tva_num = document.getElementById('ec-tva')?.value.trim() || '';
   if (!name || !email) return toast('Nom et email requis', 'warn');
+  if (is_pro && siren && !/^\d{9}$/.test(siren)) return toast('SIREN invalide (9 chiffres)', 'warn');
   try {
-    await api.updateUser(id, { firstname, name, email, phone, address });
+    await api.updateUser(id, { firstname, name, email, phone, address, is_pro, company, siren, tva_num });
     closeModal();
     toast('Client mis à jour', 'success');
     adminClients();
@@ -515,33 +683,250 @@ async function adminClients() {
 // ───────────────────────────────────────────
 async function adminMessagesOverview() {
   if (!requireAdmin()) return;
-  renderAdminLayout('Messages', '<div class="spinner"></div>');
+  renderAdminLayout('Messages', '');
+
+  // Split-pane pleine hauteur — annule le padding de page-content
+  document.getElementById('page-content').style.cssText = 'padding:0;display:flex;flex-direction:column;height:calc(100vh - 61px);overflow:hidden';
+  document.getElementById('page-content').innerHTML = `
+    <div style="display:flex;flex:1;overflow:hidden">
+      <!-- COLONNE GAUCHE : liste des conversations -->
+      <div style="width:300px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">
+        <div id="conv-search-wrap" style="padding:.75rem;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center">
+          <input class="form-control" id="conv-search" placeholder="🔍 Rechercher..." oninput="_filterConvs(this.value)" style="font-size:.82rem">
+        </div>
+        <div id="conv-list" style="overflow-y:auto;flex:1"><div class="spinner" style="margin:2rem auto"></div></div>
+      </div>
+      <!-- COLONNE DROITE : messages -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div id="chat-panel-header" style="padding:.75rem 1.25rem;border-bottom:1px solid var(--border);flex-shrink:0;display:none;align-items:center;justify-content:space-between">
+          <div id="chat-panel-title"></div>
+          <a id="chat-panel-link" style="font-size:.78rem;color:var(--blue);cursor:pointer">Voir l'intervention →</a>
+        </div>
+        <div id="chat-panel-msgs" style="flex:1;min-height:0;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:.75rem;background:var(--bg2)">
+          <div style="text-align:center;color:var(--muted);margin-top:4rem;font-size:.9rem">← Sélectionnez une conversation</div>
+        </div>
+        <div id="chat-panel-input" style="display:none;border-top:1px solid var(--border);padding:.75rem;flex-shrink:0;background:var(--surface)">
+          <div style="display:flex;gap:.5rem">
+            <textarea id="chat-panel-textarea" class="form-control" rows="2" placeholder="Écrire un message..." style="resize:none;font-size:.88rem"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();_sendAdminChatMsg()}"></textarea>
+            <button class="btn btn-primary" onclick="_sendAdminChatMsg()" style="align-self:flex-end">${ico('send')}</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
   try {
-    // Récupère toutes les interventions avec messages non lus
-    const msgs = await api.req('GET', '/api/collections/messages/records?filter=read=false%26%26from_admin=false&sort=-created&perPage=50&expand=intervention');
-    document.getElementById('page-content').innerHTML = `
-      <div class="card">
-        <div class="card-header"><span class="card-title">Messages clients non lus (${msgs.totalItems})</span></div>
-        ${!msgs.items.length
-          ? '<div class="empty-state">' + ico('msg') + '<h3>Aucun message non lu</h3></div>'
-          : `<div style="display:flex;flex-direction:column;gap:.75rem">
-            ${msgs.items.map(m => `
-              <div class="card" style="cursor:pointer" onclick="Router.navigate('/admin/intervention/${m.intervention}')">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem">
-                  <div>
-                    <div style="font-weight:600;font-size:.9rem;margin-bottom:.25rem">${m.expand?.intervention?.title || m.intervention}</div>
-                    <div style="color:var(--muted2);font-size:.88rem">${m.content.slice(0,120)}${m.content.length>120?'…':''}</div>
-                  </div>
-                  <div style="text-align:right;flex-shrink:0">
-                    <div style="font-family:var(--FM);font-size:.68rem;color:var(--muted)">${timeAgo(m.created)}</div>
-                    <span class="badge" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);margin-top:.3rem">Non lu</span>
-                  </div>
-                </div>
-              </div>`).join('')}
-          </div>`
-        }
-      </div>`;
-  } catch { toast('Erreur', 'error'); }
+    const [allMsgs, unreadMsgs] = await Promise.all([
+      api.req('GET', '/api/collections/messages/records?sort=-created&perPage=500'),
+      api.req('GET', '/api/collections/messages/records?filter=read%3Dfalse%26%26from_admin%3Dfalse&perPage=500'),
+    ]);
+    window._adminConvMap = new Map();
+    for (const m of allMsgs.items) {
+      if (!window._adminConvMap.has(m.intervention))
+        window._adminConvMap.set(m.intervention, { msg: m, unread: 0, inv: null });
+    }
+    for (const m of unreadMsgs.items) {
+      if (window._adminConvMap.has(m.intervention)) window._adminConvMap.get(m.intervention).unread++;
+    }
+    // Charger les interventions + access_links pour avoir titre + nom client
+    const ids = Array.from(window._adminConvMap.keys());
+    if (ids.length) {
+      const f = encodeURIComponent('(' + ids.map(id => `id="${id}"`).join('||') + ')');
+      const fl = encodeURIComponent('(' + ids.map(id => `intervention="${id}"`).join('||') + ')');
+      const [invsData, linksData] = await Promise.all([
+        api.req('GET', `/api/collections/interventions/records?filter=${f}&perPage=500`),
+        api.req('GET', `/api/collections/access_links/records?filter=${fl}&perPage=500&fields=intervention,client_name,client_email`).catch(() => ({ items: [] })),
+      ]);
+      // Charger les users par leurs IDs
+      const userIds = [...new Set(invsData.items.map(i => i.user).filter(Boolean))];
+      let usersMap = new Map();
+      if (userIds.length) {
+        const fu = encodeURIComponent('(' + userIds.map(id => `id="${id}"`).join('||') + ')');
+        const usersData = await api.req('GET', `/api/collections/users/records?filter=${fu}&perPage=500&fields=id,name,firstname,email`).catch(() => ({ items: [] }));
+        usersMap = new Map(usersData.items.map(u => [u.id, u]));
+      }
+      const linksMap = new Map();
+      for (const lk of linksData.items) {
+        if (!linksMap.has(lk.intervention)) linksMap.set(lk.intervention, lk);
+      }
+      for (const inv of invsData.items) {
+        const u  = usersMap.get(inv.user);
+        const lk = linksMap.get(inv.id);
+        const fullName = [u?.firstname, u?.name].filter(Boolean).join(' ');
+        inv._clientName = (fullName || u?.email || lk?.client_name || lk?.client_email || '');
+      }
+      const invLookup = new Map(invsData.items.map(i => [i.id, i]));
+      for (const [id, conv] of window._adminConvMap) conv.inv = invLookup.get(id) || null;
+    }
+    _renderConvList();
+  } catch(e) { console.error(e); toast('Erreur chargement', 'error'); }
+}
+
+function _renderConvList(filter = '') {
+  const el = document.getElementById('conv-list');
+  if (!el || !window._adminConvMap) return;
+  const convs = Array.from(window._adminConvMap.values()).filter(({msg: m, inv}) => {
+    if (!filter) return true;
+    const t = (inv?.title || '') + ' ' + (inv?.client_name || '');
+    return t.toLowerCase().includes(filter.toLowerCase());
+  });
+  if (!convs.length) { el.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--muted);font-size:.85rem">Aucune conversation</div>`; return; }
+  el.innerHTML = convs.map(({msg: m, unread, inv}) => {
+    const clientName = inv?._clientName || '(inconnu)';
+    const invTitle   = inv?.title || '';
+    const hasUnread  = unread > 0;
+    return `<div class="_conv-item" data-inv="${m.intervention}" style="padding:.7rem 1rem;cursor:pointer;border-bottom:1px solid var(--border2);transition:background .12s;position:relative"
+      onmouseover="this.querySelector('._conv-actions').style.opacity='1'" onmouseout="this.querySelector('._conv-actions').style.opacity='0'"
+      onclick="_openAdminChat('${m.intervention}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.1rem">
+            <span style="display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${hasUnread?'var(--blue)':'transparent'}"></span>
+            <span style="font-weight:${hasUnread?700:500};font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${clientName}</span>
+          </div>
+          ${invTitle ? `<div style="font-size:.72rem;color:var(--muted);padding-left:1.1rem;margin-bottom:.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${invTitle}</div>` : ''}
+          <div style="font-size:.77rem;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:1.1rem">
+            ${m.from_admin ? '<span style="color:var(--muted)">Vous · </span>' : ''}${m.content.slice(0,70)}${m.content.length>70?'…':''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;flex-shrink:0">
+          <span style="font-size:.65rem;color:var(--muted)">${timeAgo(m.created)}</span>
+          ${hasUnread ? `<span style="background:var(--blue);color:#fff;font-size:.63rem;font-weight:700;padding:1px 6px;border-radius:20px;min-width:16px;text-align:center">${unread}</span>` : ''}
+        </div>
+      </div>
+      <!-- Actions au survol -->
+      <div class="_conv-actions" style="opacity:0;transition:opacity .15s;position:absolute;bottom:.5rem;right:.75rem;display:flex;gap:.25rem" onclick="event.stopPropagation()">
+        <button title="Archiver l'intervention" onclick="_archiveConv('${m.intervention}')"
+          style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:3px 6px;cursor:pointer;color:var(--muted2);font-size:.75rem;transition:color .15s"
+          onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--muted2)'">🗄</button>
+        <button title="Supprimer les messages" onclick="_deleteConvMsgs('${m.intervention}')"
+          style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:3px 6px;cursor:pointer;color:var(--muted2);font-size:.75rem;transition:color .15s"
+          onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted2)'">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+  // Recolorer l'item actif
+  if (window._adminActiveConv) _highlightConvItem(window._adminActiveConv);
+}
+
+function _filterConvs(q) { _renderConvList(q); }
+
+function _highlightConvItem(invId) {
+  document.querySelectorAll('._conv-item').forEach(el => {
+    el.style.background = el.dataset.inv === invId ? 'var(--bg3)' : '';
+  });
+}
+
+window._adminActiveConv = null;
+
+async function _openAdminChat(invId) {
+  if (window._adminChatPoll) clearInterval(window._adminChatPoll);
+  window._adminActiveConv = invId;
+  _highlightConvItem(invId);
+
+  const conv = window._adminConvMap?.get(invId);
+  const inv  = conv?.inv;
+  const invTitle   = inv?.title || 'Intervention';
+  const clientName = inv?._clientName || '';
+
+  // Header
+  const hdr = document.getElementById('chat-panel-header');
+  if (hdr) {
+    hdr.style.display = 'flex';
+    const sw = document.getElementById('conv-search-wrap');
+    if (sw) hdr.style.minHeight = sw.offsetHeight + 'px';
+    document.getElementById('chat-panel-title').innerHTML =
+      `<div style="font-weight:600;font-size:.95rem">${invTitle}</div>${clientName ? `<div style="font-size:.75rem;color:var(--muted)">${clientName}</div>` : ''}`;
+    document.getElementById('chat-panel-link').onclick = () => adminInterventionDetail(invId);
+  }
+
+  // Input
+  const inp = document.getElementById('chat-panel-input');
+  if (inp) inp.style.display = 'block';
+
+  // Charger messages
+  await _refreshAdminChatPanel(invId, true);
+  window._adminChatPoll = setInterval(() => _refreshAdminChatPanel(invId, false), 5000);
+}
+
+async function _refreshAdminChatPanel(invId, scrollToBottom) {
+  if (window._adminActiveConv !== invId) { clearInterval(window._adminChatPoll); return; }
+  try {
+    const f = encodeURIComponent(`intervention="${invId}"`);
+    const msgs = await api.req('GET', `/api/collections/messages/records?filter=${f}&sort=created&perPage=200`);
+    const el = document.getElementById('chat-panel-msgs');
+    if (!el) { clearInterval(window._adminChatPoll); return; }
+    const wasBottom = scrollToBottom || (el.scrollHeight - el.scrollTop - el.clientHeight < 80);
+    el.innerHTML = renderMessages(msgs.items, true);
+    if (wasBottom) el.scrollTop = el.scrollHeight;
+    await api.markMessagesRead(invId).catch(() => {});
+    // Effacer badge unread dans la liste
+    if (window._adminConvMap?.has(invId)) {
+      window._adminConvMap.get(invId).unread = 0;
+      const item = document.querySelector(`._conv-item[data-inv="${invId}"]`);
+      if (item) {
+        item.querySelector('span[style*="border-radius:50%"]')?.remove?.();
+        const badge = item.querySelector('span[style*="background:var(--blue)"]');
+        if (badge && badge.textContent.match(/^\d+$/)) badge.remove();
+        const nameSpan = item.querySelector('span[style*="font-weight"]');
+        if (nameSpan) nameSpan.style.fontWeight = '500';
+      }
+    }
+  } catch {}
+}
+
+async function _sendAdminChatMsg() {
+  const invId = window._adminActiveConv;
+  if (!invId) return;
+  const ta = document.getElementById('chat-panel-textarea');
+  const content = ta?.value?.trim();
+  if (!content) return;
+  ta.value = '';
+  try {
+    await api.req('POST', '/api/collections/messages/records', { intervention: invId, content, from_admin: true, read: false });
+    await _refreshAdminChatPanel(invId, true);
+    // Mettre à jour dernier msg dans la liste
+    if (window._adminConvMap?.has(invId)) {
+      window._adminConvMap.get(invId).msg = { intervention: invId, content, from_admin: true, created: new Date().toISOString() };
+      _renderConvList(document.getElementById('conv-search')?.value || '');
+    }
+  } catch(e) { console.error(e); toast('Erreur envoi', 'error'); ta.value = content; }
+}
+
+async function _archiveConv(invId) {
+  if (!await confirm('Archiver cette intervention ?')) return;
+  try {
+    await api.req('PATCH', `/api/collections/interventions/records/${invId}`, { status: 'archive' });
+    window._adminConvMap?.delete(invId);
+    if (window._adminActiveConv === invId) {
+      window._adminActiveConv = null;
+      const p = document.getElementById('chat-panel-msgs');
+      if (p) p.innerHTML = '<div style="text-align:center;color:var(--muted);margin-top:4rem;font-size:.9rem">← Sélectionnez une conversation</div>';
+      document.getElementById('chat-panel-header')?.style && (document.getElementById('chat-panel-header').style.display = 'none');
+      document.getElementById('chat-panel-input')?.style && (document.getElementById('chat-panel-input').style.display = 'none');
+    }
+    _renderConvList(document.getElementById('conv-search')?.value || '');
+    toast('Intervention archivée', 'success');
+  } catch(e) { toast('Erreur archivage', 'error'); }
+}
+
+async function _deleteConvMsgs(invId) {
+  if (!await confirm('Supprimer tous les messages de cette conversation ?')) return;
+  try {
+    const f = encodeURIComponent(`intervention="${invId}"`);
+    const msgs = await api.req('GET', `/api/collections/messages/records?filter=${f}&perPage=500&fields=id`);
+    await Promise.all(msgs.items.map(m => api.req('DELETE', `/api/collections/messages/records/${m.id}`)));
+    window._adminConvMap?.delete(invId);
+    if (window._adminActiveConv === invId) {
+      window._adminActiveConv = null;
+      const p = document.getElementById('chat-panel-msgs');
+      if (p) p.innerHTML = '<div style="text-align:center;color:var(--muted);margin-top:4rem;font-size:.9rem">← Sélectionnez une conversation</div>';
+      document.getElementById('chat-panel-header')?.style && (document.getElementById('chat-panel-header').style.display = 'none');
+      document.getElementById('chat-panel-input')?.style && (document.getElementById('chat-panel-input').style.display = 'none');
+    }
+    _renderConvList(document.getElementById('conv-search')?.value || '');
+    toast('Messages supprimés', 'success');
+  } catch(e) { toast('Erreur suppression', 'error'); }
 }
 
 

@@ -6,8 +6,6 @@ on:
       - 'v*'
 
 jobs:
-
-  # ── Build Windows installer ──────────────────────────────────
   build-windows:
     runs-on: windows-latest
     steps:
@@ -23,23 +21,29 @@ jobs:
             controller/src-tauri -> target
             setup/src-tauri -> target
 
-      - name: Build controller (intervys.exe)
+      - name: Build controller
         working-directory: controller/src-tauri
         run: |
           cargo build --release
           cp target/release/intervys.exe ../../setup/src/payload/intervys.exe
 
-      - name: Build intervys-setup.exe
+      - name: Build setup
         working-directory: setup/src-tauri
         run: cargo build --release
+
+      - name: Stage Windows assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item setup/src-tauri/target/release/intervys-setup.exe dist/Intervys-setup.exe
+          Copy-Item setup/src-tauri/target/release/intervys-setup.exe "dist/Intervys-setup-${{ github.ref_name }}.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
-          path: setup/src-tauri/target/release/intervys-setup.exe
+          name: windows-assets
+          path: dist/*.exe
 
-  # ── Publier la release avec les deux assets ──────────────────
   release:
     runs-on: ubuntu-latest
     needs: build-windows
@@ -49,50 +53,64 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Récupérer l'exe Windows
+      - name: Download Windows assets
         uses: actions/download-artifact@v4
         with:
-          name: windows-exe
+          name: windows-assets
           path: dist/
 
-      - name: Renommer exe avec version
-        run: mv dist/intervys-setup.exe dist/intervys-setup-${{ github.ref_name }}.exe
-
-      - name: Créer intervys-deploy.zip (Docker)
+      - name: Create deploy archive
         run: |
           mkdir -p pkg
-          cp -r app         pkg/app
-          cp -r vitrine     pkg/vitrine
-          cp    nginx.conf  pkg/nginx.conf
+          cp -r app pkg/app
+          cp -r vitrine pkg/vitrine
+          cp nginx.conf pkg/nginx.conf
           mkdir -p pkg/migrations pkg/hooks pkg/mailer
           cp -r pocketbase/migrations/. pkg/migrations/
-          cp -r pocketbase/hooks/.      pkg/hooks/
-          cp    mailer/server.js        pkg/mailer/
-          cp    mailer/package.json     pkg/mailer/
-          cd pkg && zip -r ../intervys-deploy.zip . && cd ..
-          echo "Docker ZIP : $(du -sh intervys-deploy.zip | cut -f1)"
-          echo "Windows EXE : $(du -sh dist/intervys-setup-${{ github.ref_name }}.exe | cut -f1)"
+          cp -r pocketbase/hooks/. pkg/hooks/
+          cp mailer/server.js pkg/mailer/
+          cp mailer/package.json pkg/mailer/
+          cd pkg && zip -r ../Intervys-deploy.zip . && cd ..
 
-      - name: Publier la release
+      - name: Create latest.json
+        run: |
+          cat > latest.json <<JSON
+          {
+            "version": "${{ github.ref_name }}",
+            "notes": "Release ${{ github.ref_name }}",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "windows-x86_64": {
+                "url": "https://github.com/${{ github.repository }}/releases/latest/download/Intervys-setup.exe"
+              }
+            },
+            "deploy": {
+              "url": "https://github.com/${{ github.repository }}/releases/latest/download/Intervys-deploy.zip"
+            }
+          }
+          JSON
+
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
-            dist/intervys-setup-${{ github.ref_name }}.exe
-            intervys-deploy.zip
+            dist/Intervys-setup.exe
+            dist/Intervys-setup-${{ github.ref_name }}.exe
+            Intervys-deploy.zip
+            latest.json
             docker-compose.install.yml
             .env.example
           body: |
             ## Installation
 
             ### Windows
-            Télécharger **`intervys-setup-${{ github.ref_name }}.exe`** et l'exécuter.
+            Télécharger **Intervys-setup.exe** depuis les assets de cette release, puis l'exécuter.
 
             ### Docker (Linux / VPS)
             ```bash
             curl -fsSL https://github.com/${{ github.repository }}/releases/latest/download/docker-compose.install.yml \
                  -o docker-compose.yml
-            # Optionnel : créer un .env avec vos paramètres
             docker compose up -d
             ```
         env:

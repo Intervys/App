@@ -1,4 +1,4 @@
-# Données PocketBase (ne jamais committer la BDD)
+﻿# DonnÃ©es PocketBase (ne jamais committer la BDD)
 pocketbase/data/
 
 # Build Rust/Tauri
@@ -14,3 +14,12 @@ setup/src/payload/mailer/node_modules/
 # Binaire Windows produit localement
 intervio-setup.exe
 *.exe
+# Backups locaux
+_backups/
+*.bak
+
+# Build controller Rust/Tauri
+controller/src-tauri/target/
+*.bak-*
+.claude/
+**/.claude/
