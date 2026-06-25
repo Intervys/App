@@ -1,6 +1,6 @@
 {
   "productName": "Intervys",
-  "version": "0.1.0",
+  "version": "0.2.10",
   "identifier": "fr.intervys.controller",
   "build": {
     "frontendDist": "../src"
@@ -10,7 +10,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Contrôleur Intervys",
+        "title": "ContrÃ´leur Intervys",
         "width": 400,
         "height": 420,
         "resizable": false,

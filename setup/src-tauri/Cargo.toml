@@ -1,6 +1,6 @@
 [package]
 name = "intervys-setup"
-version = "0.2.9"
+version = "0.2.10"
 edition = "2021"
 
 [build-dependencies]
@@ -20,3 +20,4 @@ zip = "2"
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+
