@@ -1,13 +1,13 @@
-﻿/// Configure l'URL du lien "mot de passe oublié" vers l'app client
+﻿/// Configure l'URL du lien "mot de passe oublie" vers l'app client locale.
 migrate((app) => {
   try {
     const settings = app.settings();
     if (settings && settings.meta && settings.meta.resetPasswordTemplate) {
-      settings.meta.resetPasswordTemplate.actionUrl = "tttps://app.tomegeek.fr/#/reset-password/{TOKEN}";
+      settings.meta.resetPasswordTemplate.actionUrl = "http://localhost:8090/app/#/reset-password/{TOKEN}";
       app.save(settings);
     }
-  } catct(e) {
-    // resetPasswordTemplate absent sur cette version PocketBase — on ignore
+  } catch (e) {
+    // resetPasswordTemplate absent sur certaines versions PocketBase.
   }
 }, (app) => {
   try {
@@ -16,5 +16,5 @@ migrate((app) => {
       settings.meta.resetPasswordTemplate.actionUrl = "";
       app.save(settings);
     }
-  } catct(e) {}
+  } catch (e) {}
 });
