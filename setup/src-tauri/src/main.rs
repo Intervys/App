@@ -205,14 +205,119 @@ fn create_url_shortcut(desktop: &str, name: &str, url: &str, icon_path: &str) {
     fs::write(format!("{}\\{}.url", desktop, name), content).ok();
 }
 
-// Crée un raccourci .lnk via VBScript encodé en UTF-16 LE (WScript gère tous les chemins Unicode)
-fn create_lnk_shortcut(desktop: &str, name: &str, target: &str, icon_path: &str) {
+// ── Dossier Bureau réel de l'utilisateur ───────────────────────────
+// %USERPROFILE%\Desktop est faux dès que le bureau est redirigé (OneDrive /
+// Known Folder Move, profil itinérant) : WSH échoue alors en 80070003.
+
+fn expand_env_vars(s: &str) -> String {
+    let mut out = String::new();
+    let mut idx = 0;
+    while let Some(rel) = s[idx..].find('%') {
+        let start = idx + rel;
+        out.push_str(&s[idx..start]);
+        match s[start + 1..].find('%') {
+            Some(rel2) => {
+                let end = start + 1 + rel2;
+                let name = &s[start + 1..end];
+                match std::env::var(name) {
+                    Ok(v) => out.push_str(&v),
+                    Err(_) => {
+                        out.push('%');
+                        out.push_str(name);
+                        out.push('%');
+                    }
+                }
+                idx = end + 1;
+            }
+            None => {
+                out.push_str(&s[start..]);
+                return out;
+            }
+        }
+    }
+    out.push_str(&s[idx..]);
+    out
+}
+
+fn desktop_dir() -> Option<String> {
+    let mut candidates: Vec<String> = Vec::new();
+
+    // 1. API Windows : seule source qui suit la redirection du dossier Bureau
+    if let Ok(o) = Command::new("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-Command",
+               "[Environment]::GetFolderPath('Desktop')"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+    {
+        if o.status.success() {
+            candidates.push(String::from_utf8_lossy(&o.stdout).to_string());
+        }
+    }
+
+    // 2. Registre : User Shell Folders (souvent %USERPROFILE%\Desktop ou %OneDrive%\Desktop)
+    if let Ok(o) = Command::new("reg")
+        .args(["query",
+               r"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders",
+               "/v", "Desktop"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+    {
+        let txt = String::from_utf8_lossy(&o.stdout).to_string();
+        if let Some(pos) = txt.find("REG_EXPAND_SZ").or_else(|| txt.find("REG_SZ")) {
+            let marker = if txt[pos..].starts_with("REG_EXPAND_SZ") { "REG_EXPAND_SZ" } else { "REG_SZ" };
+            candidates.push(txt[pos + marker.len()..].to_string());
+        }
+    }
+
+    // 3. Repli classique (+ bureau OneDrive)
+    if let Ok(up) = std::env::var("USERPROFILE") {
+        candidates.push(format!("{}\\Desktop", up));
+    }
+    if let Ok(od) = std::env::var("OneDrive") {
+        candidates.push(format!("{}\\Desktop", od));
+    }
+
+    candidates
+        .into_iter()
+        .map(|c| expand_env_vars(c.trim().trim_matches('"')).trim().to_string())
+        .find(|c| !c.is_empty() && Path::new(c).is_dir())
+}
+
+fn read_utf16le(path: &Path) -> Option<String> {
+    let bytes = fs::read(path).ok()?;
+    let mut units: Vec<u16> = Vec::with_capacity(bytes.len() / 2);
+    let mut i = 0;
+    while i + 1 < bytes.len() {
+        units.push(u16::from_le_bytes([bytes[i], bytes[i + 1]]));
+        i += 2;
+    }
+    Some(String::from_utf16_lossy(&units).trim().to_string())
+}
+
+// Crée un raccourci .lnk via WScript (chemins passés en arguments : aucun échappement).
+// On Error Resume Next : une erreur ne doit jamais ouvrir de dialogue modal WSH,
+// qui bloquait l'installation (wscript attendait le clic sur « OK »).
+fn create_lnk_shortcut(desktop: &str, name: &str, target: &str, icon_path: &str) -> Option<String> {
     let lnk = format!("{}\\{}.lnk", desktop, name);
-    let icon_line = if icon_path.is_empty() { String::new() }
-        else { format!("s.IconLocation = \"{}\"\r\n", icon_path) };
-    let vbs = format!(
-        "Set ws = CreateObject(\"WScript.Shell\")\r\nSet s = ws.CreateShortcut(\"{}\")\r\ns.TargetPath = \"{}\"\r\n{}s.Save\r\n",
-        lnk, target, icon_line
+    let workdir = Path::new(target)
+        .parent()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| desktop.to_string());
+    let status = std::env::temp_dir().join("intervys_lnk_status.txt");
+    let vbs = concat!(
+        "On Error Resume Next\r\n",
+        "Set ws = CreateObject(\"WScript.Shell\")\r\n",
+        "Set fso = CreateObject(\"Scripting.FileSystemObject\")\r\n",
+        "Set s = ws.CreateShortcut(WScript.Arguments(0))\r\n",
+        "s.TargetPath = WScript.Arguments(1)\r\n",
+        "s.WorkingDirectory = WScript.Arguments(2)\r\n",
+        "If WScript.Arguments(3) <> \"\" Then s.IconLocation = WScript.Arguments(3)\r\n",
+        "s.Save\r\n",
+        "If Err.Number <> 0 Then\r\n",
+        "Set f = fso.CreateTextFile(WScript.Arguments(4), True, True)\r\n",
+        "f.WriteLine Err.Number & \" \" & Err.Description\r\n",
+        "f.Close\r\n",
+        "End If\r\n",
     );
     // UTF-16 LE avec BOM : WScript supporte tous les caractères Unicode dans les chemins
     let mut bytes: Vec<u8> = vec![0xFF, 0xFE];
@@ -221,27 +326,48 @@ fn create_lnk_shortcut(desktop: &str, name: &str, target: &str, icon_path: &str)
         bytes.push((cu >> 8) as u8);
     }
     let tmp = std::env::temp_dir().join("intervys_lnk.vbs");
-    fs::write(&tmp, &bytes).ok();
-    Command::new("wscript.exe")
-        .args([tmp.to_string_lossy().as_ref()])
+    if fs::write(&tmp, &bytes).is_err() { return None; }
+    fs::remove_file(&status).ok();
+    let _ = Command::new("wscript.exe")
+        .arg(tmp.to_string_lossy().to_string())
+        .arg(&lnk)
+        .arg(target)
+        .arg(&workdir)
+        .arg(icon_path)
+        .arg(status.to_string_lossy().to_string())
         .creation_flags(CREATE_NO_WINDOW)
-        .output()
-        .ok();
+        .output();
     fs::remove_file(&tmp).ok();
+    let err = read_utf16le(&status);
+    fs::remove_file(&status).ok();
+    err.filter(|e| !e.is_empty())
 }
 
-fn create_desktop_shortcuts(base: &Path, icon_path: &str) {
-    let desktop = std::env::var("USERPROFILE")
-        .map(|p| format!("{}\\Desktop", p))
-        .unwrap_or_default();
-    if desktop.is_empty() { return; }
+// Crée les raccourcis bureau. `with_exe` : le contrôleur intervys.exe est déjà en place.
+// Retourne les avertissements à journaliser (aucun échec n'est silencieux).
+fn create_desktop_shortcuts(base: &Path, icon_path: &str, with_exe: bool) -> Vec<String> {
+    let mut warnings = Vec::new();
+    let desktop = match desktop_dir() {
+        Some(d) => d,
+        None => {
+            warnings.push("Dossier Bureau introuvable — raccourcis non créés".to_string());
+            return warnings;
+        }
+    };
     // Raccourci Site (navigateur → vitrine publique)
     create_url_shortcut(&desktop, "Intervys Site", "http://localhost:8090/", icon_path);
     // Raccourci Admin (navigateur → back-office)
     create_url_shortcut(&desktop, "Intervys Admin", "http://localhost:8090/app/#/admin-login", icon_path);
-    // Raccourci Contrôleur (lance intervys.exe)
-    let ctrl = base.join("intervys.exe").to_string_lossy().to_string();
-    create_lnk_shortcut(&desktop, "Intervys Controleur", &ctrl, icon_path);
+    if with_exe {
+        // Raccourci Contrôleur (lance intervys.exe) — créé après la copie de l'exe
+        let ctrl = base.join("intervys.exe").to_string_lossy().to_string();
+        if let Some(err) = create_lnk_shortcut(&desktop, "Intervys", &ctrl, icon_path) {
+            warnings.push(format!("Raccourci « Intervys » non créé dans {} : {}", desktop, err));
+        }
+        // Doublon « Intervys Controleur.lnk » produit par les versions <= 0.2.10
+        fs::remove_file(format!("{}\\Intervys Controleur.lnk", desktop)).ok();
+    }
+    warnings
 }
 
 // ── DÉPLOIEMENT NATIF ─────────────────────────────────────────────
@@ -427,8 +553,6 @@ async fn deploy_native(install_dir: String, app: tauri::AppHandle) -> Result<Str
     if icon_payload.exists() { fs::copy(&icon_payload, &icon_dest).ok(); }
     let icon_path = icon_dest.to_string_lossy().to_string();
 
-    create_desktop_shortcuts(base, &icon_path);
-
     // Installer le contrôleur (intervys.exe)
     let ctrl_payload = get_payload_path("intervys.exe");
     let ctrl_dest    = base.join("intervys.exe");
@@ -437,13 +561,9 @@ async fn deploy_native(install_dir: String, app: tauri::AppHandle) -> Result<Str
             .map_err(|e| format!("Erreur copie contrôleur : {}", e))?;
         emit_log(&window, "✓ Contrôleur Intervys installé");
 
-        // Raccourci bureau vers le contrôleur
-        let desktop = std::env::var("USERPROFILE")
-            .map(|p| format!("{}\\Desktop", p))
-            .unwrap_or_default();
-        if !desktop.is_empty() {
-            let ctrl_s = ctrl_dest.to_string_lossy().to_string();
-            create_lnk_shortcut(&desktop, "Intervys", &ctrl_s, &icon_path);
+        // Raccourcis bureau — l'exe est en place, la cible du .lnk est valide
+        for msg in create_desktop_shortcuts(base, &icon_path, true) {
+            emit_log(&window, &format!("⚠ {}", msg));
         }
 
         // Démarrage automatique au login via registre HKCU Run
@@ -476,6 +596,9 @@ async fn deploy_native(install_dir: String, app: tauri::AppHandle) -> Result<Str
             .ok();
     } else {
         emit_log(&window, "⚠ Contrôleur introuvable dans le payload (intervys.exe)");
+        for msg in create_desktop_shortcuts(base, &icon_path, false) {
+            emit_log(&window, &format!("⚠ {}", msg));
+        }
     }
 
     emit_progress(&window, "Terminé", 100);
@@ -526,7 +649,9 @@ async fn deploy_docker(install_dir: String, app: tauri::AppHandle) -> Result<(),
     let icon_dest = base.join("icon.ico");
     let icon_payload = get_payload_path("icon.ico");
     if icon_payload.exists() { fs::copy(&icon_payload, &icon_dest).ok(); }
-    create_desktop_shortcuts(base, &icon_dest.to_string_lossy());
+    for msg in create_desktop_shortcuts(base, &icon_dest.to_string_lossy(), false) {
+        emit_log(&window, &format!("⚠ {}", msg));
+    }
     emit_log(&window, "Intervys demarre via Docker !");
     emit_progress(&window, "Terminé", 100);
     Ok(())
@@ -606,13 +731,13 @@ fn uninstall(app: tauri::AppHandle) -> Result<(), String> {
         .creation_flags(CREATE_NO_WINDOW).output().ok();
 
     log!(62, "Suppression des raccourcis bureau...");
-    if let Ok(profile) = std::env::var("USERPROFILE") {
+    if let Some(desktop) = desktop_dir() {
         for name in &[
             "Intervys.lnk", "Intervys Controleur.lnk",
             "Intervys Site.url", "Intervys Admin.url",
             "Intervys.url", "Intervys Vitrine.url",
         ] {
-            fs::remove_file(format!("{}\\Desktop\\{}", profile, name)).ok();
+            fs::remove_file(format!("{}/{}", desktop, name)).ok();
         }
     }
 
