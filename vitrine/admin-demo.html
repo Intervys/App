@@ -207,7 +207,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 
   <!-- ─── DASHBOARD ─── -->
   <div class="page-content active" id="page-dashboard">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:.6rem">
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap">
+      <button class="btn btn-ghost" style="font-size:.78rem" onclick="toggleDemoFullscreen()"
+              title="Afficher le tableau de bord en plein écran (Échap pour sortir)">⛶ Plein écran</button>
       <button class="btn btn-ghost" style="font-size:.78rem" onclick="toggleDashCfg()">⚙️ Tuiles</button>
     </div>
     <div id="dash-cfg" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:1rem">
@@ -520,6 +522,11 @@ const PAGES = {
   dashboard:'Dashboard', interventions:'Interventions', 'new-intervention':'Nouvelle intervention',
   clients:'Clients', links:"Liens d'accès", billing:'Devis', invoices:'Factures', settings:'Paramètres', messages:'Messages'
 };
+
+function toggleDemoFullscreen() {
+  if (document.fullscreenElement) { document.exitFullscreen(); return; }
+  document.documentElement.requestFullscreen().catch(function(){});
+}
 
 function toggleDashCfg() {
   const el = document.getElementById('dash-cfg');

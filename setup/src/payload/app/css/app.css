@@ -371,3 +371,8 @@ tr:hover td{background:rgba(var(--blue-rgb),.03)}
 td.td-actions{display:flex;align-items:center;padding:.75rem 1rem}
 
 .table-wrap{margin:0 -1.5rem;width:calc(100% + 3rem);border-radius:0;border-left:none;border-right:none}
+
+/* Plein écran du tableau de bord : on masque la navigation pour gagner la place */
+body.iv-fs .sidebar,
+body.iv-fs .topbar { display: none !important; }
+body.iv-fs .page-content { padding-top: .75rem; }

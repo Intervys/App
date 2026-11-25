@@ -295,6 +295,19 @@ function toggleDashConfig() {
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
+// Plein écran : le navigateur gère la sortie avec Échap, on ne fait que basculer.
+function toggleDashboardFullscreen() {
+  const doc = document;
+  if (doc.fullscreenElement) {
+    doc.exitFullscreen();
+    doc.body.classList.remove('iv-fs');
+    return;
+  }
+  doc.documentElement.requestFullscreen()
+    .then(() => doc.body.classList.add('iv-fs'))
+    .catch(e => { if (typeof toast === 'function') toast('Plein écran refusé : ' + (e.message || e), 'error'); });
+}
+
 function saveDashConfig() {
   const ids = [...document.querySelectorAll('input[name="dash-tile"]:checked')].map(c => c.value);
   localStorage.setItem('hg_dash_tiles', JSON.stringify(ids));
@@ -327,7 +340,11 @@ async function adminDashboard() {
     const visibleTiles = _DASH_TILES.filter(t => enabledIds.includes(t.id));
 
     document.getElementById('page-content').innerHTML = `
-      <div style="display:flex;justify-content:flex-end;margin-bottom:.6rem">
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="toggleDashboardFullscreen()"
+                title="Afficher le tableau de bord en plein écran (Échap pour sortir)" style="font-size:.78rem;gap:.4rem">
+          ⛶ Plein écran
+        </button>
         <button class="btn btn-ghost btn-sm" onclick="toggleDashConfig()" style="font-size:.78rem;gap:.4rem">
           ${ico('settings')} Tuiles
         </button>
