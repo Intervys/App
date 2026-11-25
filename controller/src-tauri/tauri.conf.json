@@ -1,6 +1,6 @@
 {
   "productName": "Intervys",
-  "version": "0.2.11",
+  "version": "0.3.0",
   "identifier": "fr.intervys.controller",
   "build": {
     "frontendDist": "../src"
