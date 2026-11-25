@@ -77,6 +77,7 @@ jobs:
           mkdir -p setup-launcher
           cp setup/launcher/setup-intervys.sh setup-launcher/
           cp setup/launcher/setup-intervys.ps1 setup-launcher/
+          cp setup/launcher/setup-intervys.cmd setup-launcher/
 
       - name: Create latest.json
         run: |
@@ -104,6 +105,7 @@ jobs:
             install.sh
             setup-launcher/setup-intervys.sh
             setup-launcher/setup-intervys.ps1
+            setup-launcher/setup-intervys.cmd
             dist/Intervys-setup.exe
             dist/Intervys-setup-${{ github.ref_name }}.exe
             Intervys-deploy.zip
