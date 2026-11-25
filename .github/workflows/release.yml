@@ -72,6 +72,12 @@ jobs:
           cp mailer/package.json pkg/mailer/
           cd pkg && zip -r ../Intervys-deploy.zip . && cd ..
 
+      - name: Préparer les lanceurs d'installation
+        run: |
+          mkdir -p setup-launcher
+          cp setup/launcher/setup-intervys.sh setup-launcher/
+          cp setup/launcher/setup-intervys.ps1 setup-launcher/
+
       - name: Create latest.json
         run: |
           cat > latest.json <<JSON
@@ -96,6 +102,8 @@ jobs:
           generate_release_notes: true
           files: |
             install.sh
+            setup-launcher/setup-intervys.sh
+            setup-launcher/setup-intervys.ps1
             dist/Intervys-setup.exe
             dist/Intervys-setup-${{ github.ref_name }}.exe
             Intervys-deploy.zip
