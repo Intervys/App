@@ -7,8 +7,8 @@ REM  Aucun droit administrateur n'est requis pour cette etape (il le sera
 REM  pour installer Docker Desktop).
 REM ===========================================================================
 setlocal
-set "URL=https://github.com/Intervys/App/releases/latest/download/setup-intervys.ps1"
-set "PS1=%TEMP%\setup-intervys.ps1"
+set "URL=https://github.com/Intervys/App/releases/latest/download/setup-intervys-gui.ps1"
+set "PS1=%TEMP%\setup-intervys-gui.ps1"
 
 echo.
 echo   Intervys - installation

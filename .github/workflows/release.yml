@@ -76,6 +76,7 @@ jobs:
         run: |
           mkdir -p setup-launcher
           cp setup/launcher/setup-intervys.sh setup-launcher/
+          cp setup/launcher/setup-intervys-gui.ps1 setup-launcher/
           cp setup/launcher/setup-intervys.ps1 setup-launcher/
           cp setup/launcher/setup-intervys.cmd setup-launcher/
 
@@ -104,6 +105,7 @@ jobs:
           files: |
             install.sh
             setup-launcher/setup-intervys.sh
+            setup-launcher/setup-intervys-gui.ps1
             setup-launcher/setup-intervys.ps1
             setup-launcher/setup-intervys.cmd
             dist/Intervys-setup.exe
