@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script>
+/* Portail d'installation : tant que l'assistant n'est pas terminé, on y va. */
+(function(){
+  try {
+    fetch('/api/setup-status', {cache:'no-store'})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){ if (d && d.done === false) location.replace('/setup.html'); })
+      .catch(function(){});
+  } catch(e) {}
+})();
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mon site</title>

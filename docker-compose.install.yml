@@ -1,7 +1,12 @@
 name: Intervys
 
 # ─────────────────────────────────────────────────────────────
-#  Installation en une commande :
+#  Installation en une commande (recommandée) :
+#
+#    curl -fsSL https://github.com/Intervys/app/releases/latest/download/install.sh | bash
+#
+#  Le script génère les secrets dans .env, démarre la stack et affiche l'URL
+#  de l'assistant de configuration. Manuellement :
 #
 #    curl -fsSL https://github.com/Intervys/app/releases/latest/download/docker-compose.install.yml \
 #         -o docker-compose.yml && docker compose up -d
