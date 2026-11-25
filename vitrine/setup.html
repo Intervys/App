@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Installation — Intervys</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#dde6f0; --slate:#8fa8c0; --ivory:#07090e; --orange:#1e90ff; --orange-d:#00cfff;
+    --line:rgba(30,144,255,.14); --muted:#5f7a96; --ok:#22c55e; --err:#ef4444; --card:#0b0f18;
+    --fd:"Montserrat",system-ui,sans-serif; --ft:"Inter",system-ui,sans-serif;
+    --btn-ink:#04101d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#07090e;color:var(--ink);font-family:var(--ft);font-size:15px;line-height:1.5}
+  header{background:#0b0f18;border-bottom:1px solid var(--line);color:#eaf2fb;padding:18px 24px;display:flex;align-items:center;gap:14px}
+  header .dot{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#1e90ff,#00cfff);display:flex;align-items:center;justify-content:center;font-weight:800;color:#04101d}
+  header h1{font-family:var(--fd);font-size:1.05rem;margin:0;font-weight:700}
+  header small{color:var(--muted);font-size:.78rem;display:block;font-weight:400}
+  main{max-width:760px;margin:0 auto;padding:28px 20px 80px}
+  .steps{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+  .steps span{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-radius:20px;border:1px solid var(--line);background:#0b0f18}
+  .steps span.on{background:#1e90ff;color:#04101d;border-color:#1e90ff;font-weight:700}
+  .steps span.done{background:rgba(34,197,94,.12);color:var(--ok);border-color:rgba(34,197,94,.3)}
+  .card{background:#0b0f18;border:1px solid var(--line);border-radius:14px;padding:24px;box-shadow:0 12px 32px -18px rgba(0,0,0,.9)}
+  h2{font-family:var(--fd);font-size:1.15rem;margin:0 0 6px}
+  .hint{color:var(--muted);font-size:.85rem;margin:0 0 18px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .full{grid-column:1/-1}
+  label{display:block;font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:var(--ft);font-size:.92rem;background:#0f1520;color:var(--ink)}
+  input:focus,select:focus{outline:2px solid rgba(30,144,255,.35);border-color:#1e90ff}
+  .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap}
+  button{font-family:var(--ft);font-weight:600;font-size:.9rem;padding:11px 18px;border-radius:9px;border:1px solid var(--line);background:#0f1520;color:var(--ink);cursor:pointer}
+  button.primary{background:#1e90ff;border-color:#1e90ff;color:#04101d}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .ghost{background:transparent}
+  .msg{margin-top:14px;padding:11px 14px;border-radius:9px;font-size:.86rem;display:none}
+  .msg.ok{display:block;background:rgba(34,197,94,.1);color:var(--ok);border:1px solid rgba(34,197,94,.28)}
+  .msg.err{display:block;background:rgba(239,68,68,.1);color:#ff8b8b;border:1px solid rgba(239,68,68,.3)}
+  .msg.info{display:block;background:rgba(30,144,255,.1);color:#7cc4ff;border:1px solid rgba(30,144,255,.3)}
+  .logo-prev{height:52px;margin-top:8px;display:none}
+  .check{display:flex;align-items:center;gap:9px;font-size:.88rem;color:var(--slate);margin-top:10px}
+  .check input{width:16px;height:16px;accent-color:var(--orange)}
+  .recap{font-size:.9rem}
+  .recap div{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .recap div b{width:210px;flex-shrink:0;color:var(--muted);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em}
+  code{font-family:ui-monospace,monospace;font-size:.82rem;background:rgba(30,144,255,.1);color:#7cc4ff;padding:2px 6px;border-radius:5px}
+  @media(max-width:620px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="dot">IV</div>
+  <div><h1 id="brandTitle">Configuration initiale</h1><small>Assistant d'installation Intervys — à faire une seule fois</small></div>
+</header>
+<main>
+  <div class="steps" id="steps"></div>
+  <div id="screen"></div>
+</main>
+<script>
+// Aucun domaine en dur : tout est relatif à l'origine qui sert cette page
+// (fonctionne avant que le domaine du client soit choisi).
+const API = window.location.origin;
+const S = { token:null, step:1, data:{} };
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function pb(path, method, body, auth){
+  const headers = {'Content-Type':'application/json'};
+  if (auth && S.token) headers.Authorization = 'Bearer ' + S.token;
+  const r = await fetch(API + path, {
+    method: method || 'GET',
+    headers: headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const txt = await r.text();
+  let data = null; try { data = txt ? JSON.parse(txt) : null; } catch(e) { data = txt; }
+  if (!r.ok) { const e = new Error((data && (data.message || data.error)) || ('HTTP ' + r.status)); e.data = data; throw e; }
+  return data;
+}
+async function setting(key){
+  const r = await pb('/api/collections/settings/records?filter=' + encodeURIComponent("key='"+key+"'") + '&perPage=1', 'GET', null, true);
+  return (r.items && r.items[0]) || null;
+}
+async function setSetting(key, value){
+  const ex = await setting(key);
+  if (ex) return pb('/api/collections/settings/records/' + ex.id, 'PATCH', { value }, true);
+  return pb('/api/collections/settings/records', 'POST', { key, value }, true);
+}
+function flash(el, type, text){ const m=$(el); m.className='msg '+type; m.textContent=text; }
+function renderSteps(){
+  const labels = ['Administrateur','Marque','Entreprise','E-mail','Facturation','Terminé'];
+  $('steps').innerHTML = labels.map((l,i)=>{ const n=i+1;
+    return `<span class="${n===S.step?'on':(n<S.step?'done':'')}">${n}. ${l}</span>`; }).join('');
+}
+function render(){
+  renderSteps();
+  const v = S.step;
+  if (v===1) return stepAdmin();
+  if (v===2) return stepBrand();
+  if (v===3) return stepCompany();
+  if (v===4) return stepMail();
+  if (v===5) return stepEinvoice();
+  return stepDone();
+}
+
+// ── 1. Superutilisateur PocketBase ─────────────────────────────
+function stepAdmin(){
+  $('screen').innerHTML = `
+  <div class="card">
+    <h2>Compte administrateur</h2>
+    <p class="hint">Connectez-vous avec le compte superutilisateur PocketBase. S'il n'existe pas encore, créez-le d'abord sur <code>${esc(location.origin)}/_/</code> (écran natif PocketBase, une seule fois).</p>
+    <div class="grid">
+      <div class="full"><label>E-mail administrateur</label><input id="adm-email" type="email" autocomplete="username"></div>
+      <div class="full"><label>Mot de passe</label><input id="adm-pass" type="password" autocomplete="current-password"></div>
+    </div>
+    <div class="actions"><button class="primary" onclick="doAdmin()">Se connecter</button></div>
+    <div class="msg" id="adm-msg"></div>
+  </div>`;
+  $('adm-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doAdmin(); });
+}
+async function doAdmin(){
+  const email = $('adm-email').value.trim(), pass = $('adm-pass').value;
+  if (!email || !pass) return flash('adm-msg','err','E-mail et mot de passe requis.');
+  try {
+    const r = await fetch(API + '/api/collections/_superusers/auth-with-password', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ identity: email, password: pass })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.message || 'Identifiants refusés');
+    S.token = d.token; S.data.adminEmail = (d.record && d.record.email) || email;
+    // Verrou : ne jamais rejouer l'assistant
+    const done = await setting('setup_done');
+    if (done && done.value) { showAlreadyDone(String(done.value)); return; }
+    flash('adm-msg','ok','Connecté.');
+    setTimeout(()=>{ S.step=2; render(); }, 400);
+  } catch(e) { flash('adm-msg','err','Connexion impossible : ' + e.message); }
+}
+function showAlreadyDone(date){
+  $('screen').innerHTML = `<div class="card"><h2>Déjà configuré</h2>
+    <p class="hint">Assistant déjà exécuté le ${esc(date.slice(0,10))}. Modifiez les réglages depuis l'application (Paramètres) ou l'écran PocketBase.</p>
+    <div class="actions"><button class="primary" onclick="location.href='/app/'">Ouvrir l'application</button></div></div>`;
+  $('steps').innerHTML = '';
+}
+
+// ── 2. Marque ──────────────────────────────────────────────────
+function stepBrand(){
+  const d = S.data;
+  $('screen').innerHTML = `
+  <div class="card">
+    <h2>Identité de la marque</h2>
+    <p class="hint">Ces valeurs s'affichent dans l'application, la vitrine et les e-mails.</p>
+    <div class="grid">
+      <div class="full"><label>Nom commercial</label><input id="b-name" value="${esc(d.brand_name||'')}"></div>
+      <div><label>URL de la vitrine</label><input id="b-site" value="${esc(d.site_url||'')}" placeholder="https://monentreprise.fr"></div>
+      <div><label>URL de l'application</label><input id="b-app" value="${esc(d.app_url||'')}" placeholder="https://app.monentreprise.fr/app/"></div>
+      <div><label>E-mail de contact</label><input id="b-mail" type="email" value="${esc(d.contact_email||'')}"></div>
+      <div><label>Logo (PNG conseillé)</label><input id="b-logo" type="file" accept="image/png,image/svg+xml,image/jpeg">
+        <img class="logo-prev" id="b-logo-prev" alt=""></div>
+    </div>
+    <div class="actions">
+      <button class="ghost" onclick="S.step=1;render()">← Retour</button>
+      <button class="primary" onclick="doBrand()">Continuer</button>
+    </div>
+    <div class="msg" id="b-msg"></div>
+  </div>`;
+  $('b-logo').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => { S.data.logo_b64 = fr.result; const p=$('b-logo-prev'); p.src=fr.result; p.style.display='block'; };
+    fr.readAsDataURL(f);
+  });
+}
+async function doBrand(){
+  const name = $('b-name').value.trim(), site = $('b-site').value.trim(),
+        app = $('b-app').value.trim(), mail = $('b-mail').value.trim();
+  if (!name) return flash('b-msg','err','Le nom commercial est requis.');
+  if (site && !/^https?:\/\//.test(site)) return flash('b-msg','err',"L'URL de la vitrine doit commencer par https://");
+  if (app && !/^https?:\/\//.test(app)) return flash('b-msg','err',"L'URL de l'application doit commencer par https://");
+  try {
+    await setSetting('site_name', name);
+    if (site) await setSetting('site_url', site);
+    if (app)  await setSetting('hg_app_url', app);
+    if (mail) await setSetting('site_email', mail);
+    if (S.data.logo_b64) await setSetting('doc_logo_b64', S.data.logo_b64);
+    Object.assign(S.data, { brand_name:name, site_url:site, app_url:app, contact_email:mail });
+    $('brandTitle').textContent = name;
+    S.step = 3; render();
+  } catch(e) { flash('b-msg','err','Enregistrement impossible : ' + e.message); }
+}
+
+// ── 3. Entreprise ──────────────────────────────────────────────
+function stepCompany(){
+  const b = S.data.business || {};
+  $('screen').innerHTML = `
+  <div class="card">
+    <h2>Identité de l'entreprise</h2>
+    <p class="hint">Utilisée sur les devis, factures et le XML Factur-X (obligatoire pour la facturation électronique).</p>
+    <div class="grid">
+      <div><label>Raison sociale</label><input id="c-legal" value="${esc(b.legal||'')}"></div>
+      <div><label>Nom affiché sur les documents</label><input id="c-name" value="${esc(b.name||S.data.brand_name||'')}"></div>
+      <div><label>SIRET</label><input id="c-siret" value="${esc(b.siret||'')}" placeholder="123 456 789 00012"></div>
+      <div><label>N° TVA intracommunautaire</label><input id="c-tva" value="${esc(b.tva_num||'')}" placeholder="FR12345678901"></div>
+      <div class="full"><label>Adresse</label><input id="c-addr" value="${esc(b.address||'')}"></div>
+      <div><label>Code postal</label><input id="c-zip" value="${esc(b.zip||'')}"></div>
+      <div><label>Ville</label><input id="c-city" value="${esc(b.city||'')}"></div>
+      <div><label>RCS (facultatif)</label><input id="c-rcs" value="${esc(b.rcs||'')}"></div>
+      <div><label>Régime de TVA</label>
+        <select id="c-regime">
+          <option value="franchise"${b.tva==='franchise'?' selected':''}>Franchise en base (pas de TVA)</option>
+          <option value="assujetti"${b.tva==='assujetti'?' selected':''}>Assujetti à la TVA</option>
+        </select></div>
+      <div><label>IBAN</label><input id="c-iban" value="${esc(b.iban||'')}"></div>
+      <div><label>BIC</label><input id="c-bic" value="${esc(b.bic||'')}"></div>
+    </div>
+    <div class="actions">
+      <button class="ghost" onclick="S.step=2;render()">← Retour</button>
+      <button class="primary" onclick="doCompany()">Continuer</button>
+    </div>
+    <div class="msg" id="c-msg"></div>
+  </div>`;
+}
+async function doCompany(){
+  const g = id => $(id).value.trim();
+  const siretRaw = g('c-siret');
+  const siret = siretRaw.replace(/[\s.]/g, '');
+  const bs = { name:g('c-name'), legal:g('c-legal'), siret:siret, tva_num:g('c-tva'),
+    address:g('c-addr'), zip:g('c-zip'), city:g('c-city'), rcs:g('c-rcs'),
+    tva:$('c-regime').value, iban:g('c-iban'), bic:g('c-bic'),
+    email:S.data.contact_email||'', phone:'', website:S.data.site_url||'' };
+  if (!bs.legal) return flash('c-msg','err','La raison sociale est requise.');
+  if (!siret) return flash('c-msg','err','Le SIRET est requis pour la facturation électronique.');
+  if (!/^\d{14}$/.test(siret)) return flash('c-msg','err','Le SIRET doit comporter 14 chiffres (sans espaces).');
+  try {
+    await setSetting('business_settings', JSON.stringify(bs));
+    S.data.business = bs; S.step = 4; render();
+  } catch(e) { flash('c-msg','err','Enregistrement impossible : ' + e.message); }
+}
+
+// ── 4. E-mail (test bloquant) ──────────────────────────────────
+function stepMail(){
+  $('screen').innerHTML = `
+  <div class="card">
+    <h2>Envoi des e-mails</h2>
+    <p class="hint">Utilisé pour les notifications et l'envoi des factures. Le test envoie un vrai message : il doit réussir pour continuer.</p>
+    <div class="grid">
+      <div><label>Serveur SMTP</label><input id="m-host" placeholder="smtp.monhebergeur.fr"></div>
+      <div><label>Port</label><input id="m-port" type="number" value="587"></div>
+      <div><label>Utilisateur</label><input id="m-user" placeholder="contact@monentreprise.fr"></div>
+      <div><label>Mot de passe</label><input id="m-pass" type="password"></div>
+      <div><label>Adresse d'expédition</label><input id="m-from" type="email" value="${esc(S.data.contact_email||'')}"></div>
+      <div><label>Nom d'expéditeur</label><input id="m-fromname" value="${esc(S.data.brand_name||'')}"></div>
+      <div class="full"><label>Adresse de test</label><input id="m-test" type="email" value="${esc(S.data.adminEmail||'')}"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="m-tls" checked> Connexion chiffrée (STARTTLS / TLS)</label>
+    <div class="actions">
+      <button class="ghost" onclick="S.step=3;render()">← Retour</button>
+      <button onclick="doMailTest()">Envoyer un test</button>
+      <button class="primary" id="m-next" disabled onclick="doMailNext()">Continuer</button>
+    </div>
+    <div class="msg" id="m-msg"></div>
+  </div>`;
+}
+let mailVerified = false;
+async function doMailTest(){
+  const host=$('m-host').value.trim(), port=parseInt($('m-port').value,10)||587,
+        user=$('m-user').value.trim(), pass=$('m-pass').value,
+        from=$('m-from').value.trim(), fromName=$('m-fromname').value.trim(),
+        to=$('m-test').value.trim(), tls=$('m-tls').checked;
+  if (!host||!user||!pass||!from||!to) return flash('m-msg','err','Serveur, identifiant, mot de passe, expéditeur et destinataire sont requis.');
+  flash('m-msg','info','Enregistrement des réglages SMTP…');
+  try {
+    await pb('/api/settings','PATCH',{ smtp:{enabled:true,host,port,username:user,password:pass,authMethod:'PLAIN',tls},
+      meta:{senderAddress:from,senderName:fromName} }, true);
+    flash('m-msg','info','Envoi du message de test…');
+    await pb('/api/settings/test/email','POST',{ email:to }, true);
+    mailVerified = true; $('m-next').disabled = false;
+    flash('m-msg','ok','Test réussi — message envoyé à ' + to + '.');
+    S.data.mail = { host, port, user, from, fromName };
+  } catch(e) {
+    mailVerified = false; $('m-next').disabled = true;
+    flash('m-msg','err',"Échec : " + e.message + ". Vérifiez l'hôte, le port et les identifiants.");
+  }
+}
+function doMailNext(){ if (!mailVerified) return; S.step = 5; render(); }
+
+// ── 5. Facturation électronique ────────────────────────────────
+function stepEinvoice(){
+  $('screen').innerHTML = `
+  <div class="card">
+    <h2>Facturation électronique</h2>
+    <p class="hint">Plateforme agréée (SuperPDP, Abby, Tiime…). Vous pouvez configurer plus tard : la génération Factur-X locale fonctionne sans PA.</p>
+    <div class="grid">
+      <div class="full"><label>URL de l'API de la PA</label><input id="p-url" placeholder="https://api.superpdp.tech"></div>
+      <div><label>client_id</label><input id="p-id"></div>
+      <div><label>client_secret</label><input id="p-secret" type="password"></div>
+    </div>
+    <div class="actions">
+      <button class="ghost" onclick="S.step=4;render()">← Retour</button>
+      <button onclick="doPaTest()">Tester la connexion</button>
+      <button class="primary" onclick="finish(false)">Terminer sans PA</button>
+    </div>
+    <div class="msg" id="p-msg"></div>
+  </div>`;
+}
+async function doPaTest(){
+  const url=$('p-url').value.trim(), id=$('p-id').value.trim(), sec=$('p-secret').value.trim();
+  if (!url||!id||!sec) return flash('p-msg','err','URL, client_id et client_secret sont requis.');
+  flash('p-msg','info','Test de connexion à la PA…');
+  try {
+    const r = await pb('/api/test-pa','POST',{ pa_url:url, client_id:id, client_secret:sec }, true);
+    if (!r||!r.ok) return flash('p-msg','err','La PA a refusé la connexion : ' + ((r&&r.message)||'réponse inattendue'));
+    await setSetting('pa_url', url); await setSetting('pa_client_id', id); await setSetting('pa_client_secret', sec);
+    S.data.pa = true;
+    flash('p-msg','ok','Connexion PA réussie et identifiants enregistrés.');
+    setTimeout(()=>{ S.step=6; render(); }, 800);
+  } catch(e) { flash('p-msg','err','Échec : ' + e.message); }
+}
+
+// ── 6. Récapitulatif + verrouillage ────────────────────────────
+function stepDone(){
+  const d = S.data, b = d.business || {};
+  $('screen').innerHTML = `
+  <div class="card">
+    <h2>Récapitulatif</h2>
+    <p class="hint">Vérifiez, puis terminez. L'assistant se verrouillera.</p>
+    <div class="recap">
+      <div><b>Marque</b><span>${esc(d.brand_name||'—')}</span></div>
+      <div><b>Vitrine</b><span>${esc(d.site_url||'—')}</span></div>
+      <div><b>Application</b><span>${esc(d.app_url||'—')}</span></div>
+      <div><b>Contact</b><span>${esc(d.contact_email||'—')}</span></div>
+      <div><b>Entreprise</b><span>${esc(b.legal||'—')}${b.siret?' · SIRET '+esc(b.siret):''}</span></div>
+      <div><b>TVA</b><span>${b.tva==='assujetti'?'Assujetti':'Franchise en base'}</span></div>
+      <div><b>E-mail</b><span>${d.mail?('SMTP '+esc(d.mail.host)+' — testé'):'non configuré'}</span></div>
+      <div><b>Facturation électronique</b><span>${d.pa?'PA connectée':'à configurer plus tard'}</span></div>
+    </div>
+    <div class="actions">
+      <button class="ghost" onclick="S.step=5;render()">← Retour</button>
+      <button class="primary" onclick="finish(true)">Terminer l'installation</button>
+    </div>
+    <div class="msg" id="d-msg"></div>
+  </div>`;
+}
+async function finish(){
+  try {
+    await setSetting('setup_done', new Date().toISOString());
+    $('screen').innerHTML = `<div class="card"><h2>Installation terminée</h2>
+      <p class="hint">L'application est configurée.</p>
+      <div class="actions"><button class="primary" onclick="location.href='/app/'">Ouvrir l'application</button></div></div>`;
+    renderSteps();
+  } catch(e) { flash('d-msg','err','Impossible de verrouiller : ' + e.message); }
+}
+
+// ── Boot ───────────────────────────────────────────────────────
+(function boot(){
+  render();
+  // Verrou consulté sans authentification : ne fonctionne que si la collection
+  // settings est lisible publiquement ; le contrôle fiable est fait après login.
+  fetch(API + '/api/collections/settings/records?perPage=1&filter=' + encodeURIComponent("key='setup_done'"))
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d && d.items && d.items.length) showAlreadyDone(String(d.items[0].value)); })
+    .catch(()=>{});
+})();
+</script>
+</body>
+</html>

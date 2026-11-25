@@ -231,9 +231,12 @@ async function generateFacturXPdf(doc, type) {
 </x:xmpmeta>
 <?xpacket end="w"?>`;
       const xmpBytes = new TextEncoder().encode(xmpXml);
+      // pdf-lib attend des chaînes dans le dictionnaire, pas des PDFName :
+      // avec PDFName.of(...) l'appel levait une exception avalée par le catch,
+      // et le PDF n'était jamais déclaré PDF/A-3.
       const metaStream = pdfDoc.context.stream(
-        { Type: PDFName.of('Metadata'), Subtype: PDFName.of('XML') },
-        xmpBytes
+        xmpBytes,
+        pdfDoc.context.obj({ Type: 'Metadata', Subtype: 'XML' })
       );
       pdfDoc.catalog.set(PDFName.of('Metadata'), pdfDoc.context.register(metaStream));
     } catch(_) { /* XMP non critique si pdf-lib ne supporte pas l'API context */ }
